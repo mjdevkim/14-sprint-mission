@@ -1,6 +1,7 @@
 package com.sprint.mission.application.channel;
 
-import com.sprint.mission.application.mapper.UserDtoMapper;
+import com.sprint.mission.application.user.UserApplicationService;
+import com.sprint.mission.repository.UserRepository;
 import com.sprint.mission.domain.*;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
 import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
@@ -32,7 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChannelApplicationServiceImpl implements ChannelApplicationService {
 
-    private final UserDtoMapper userDtoMapper;
+    private final UserApplicationService userApplicationService;
+    private final UserRepository userRepository;
     private final ChannelDomainService channelDomainService;
     private final ReadStatusDomainService readStatusDomainService;
     private final MessageDomainService messageDomainService;
@@ -101,7 +103,11 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
 
         return new ChannelDto(
                 channel.getId(), channel.getChannelType(), channel.getName(), channel.getDescription(),
-                participantUserIds.stream().map(userDtoMapper::findById).filter(Objects::nonNull).toList(),
+                participantUserIds.stream()
+                        .map(userRepository::findById)
+                        .flatMap(Optional::stream)
+                        .map(user -> userApplicationService.findById(user.getId()))
+                        .toList(),
                 mostRecentMessageAt
         );
     }

@@ -1,7 +1,7 @@
 package com.sprint.mission.application.auth;
 
 import com.sprint.mission.domain.User;
-import com.sprint.mission.application.mapper.UserDtoMapper;
+import com.sprint.mission.application.user.UserApplicationService;
 import com.sprint.mission.controller.dto.auth.LoginRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.exception.DiscodeitException;
@@ -18,14 +18,14 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public class AuthApplicationService {
     private final UserRepository userRepository;
-    private final UserDtoMapper userDtoMapper;
+    private final UserApplicationService userApplicationService;
 
     public AuthApplicationService(
             UserRepository userRepository,
-            UserDtoMapper userDtoMapper
+            UserApplicationService userApplicationService
     ) {
         this.userRepository = userRepository;
-        this.userDtoMapper = userDtoMapper;
+        this.userApplicationService = userApplicationService;
     }
 
 
@@ -45,6 +45,6 @@ public class AuthApplicationService {
 
         log.info("로그인 완료: username={}", user.getUsername());
 
-        return userDtoMapper.toDto(user);
+        return userApplicationService.findById(user.getId());
     }
 }

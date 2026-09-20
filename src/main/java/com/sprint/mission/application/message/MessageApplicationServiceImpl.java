@@ -1,6 +1,9 @@
 package com.sprint.mission.application.message;
 
-import com.sprint.mission.application.mapper.MessageDtoMapper;
+import com.sprint.mission.application.user.UserApplicationService;
+import com.sprint.mission.controller.dto.user.UserDto;
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
+import com.sprint.mission.repository.UserRepository;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
@@ -30,7 +33,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class MessageApplicationServiceImpl implements MessageApplicationService {
 
-    private final MessageDtoMapper messageDtoMapper;
+    private final UserApplicationService userApplicationService;
+    private final UserRepository userRepository;
     private final MessageDomainService messageDomainService;
     private final UserDomainService userDomainService;
     private final ChannelDomainService channelDomainService;
@@ -121,13 +125,13 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                 createdMessage.getAttachmentIds().size()
         );
 
-        return messageDtoMapper.toDto(createdMessage);
+        return toDto(createdMessage);
     }
 
     @Override
     public MessageDto findById(UUID messageId) {
         log.debug("Message 단건 조회: messageId={}", messageId);
-        return messageDtoMapper.toDto(messageDomainService.findById(messageId));
+        return toDto(messageDomainService.findById(messageId));
     }
 
     @Override
@@ -136,7 +140,7 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
 
         List<MessageDto> messageResponses = messageDomainService.findAllByChannelId(channelId)
                 .stream()
-                .map(messageDtoMapper::toDto)
+                .map(this::toDto)
                 .toList();
 
         log.debug(
@@ -167,7 +171,7 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                 updatedMessage.getId()
         );
 
-        return messageDtoMapper.toDto(updatedMessage);
+        return toDto(updatedMessage);
     }
 
     @Override
@@ -188,5 +192,14 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
         }
 
         log.info("Message 및 첨부파일 삭제 완료: messageId={}", messageId);
+    }
+    private MessageDto toDto(Message message) {
+        // A deleted author must not prevent reading the remaining message history.
+        UserDto author = userRepository.findById(message.getSenderId())
+                .map(user -> userApplicationService.findById(user.getId())).orElse(null);
+        List<BinaryContentDto> attachments = binaryContentDomainService
+                .findAllByIdIn(message.getAttachmentIds()).stream()
+                .map(BinaryContentDto::from).toList();
+        return MessageDto.from(message, author, attachments);
     }
 }

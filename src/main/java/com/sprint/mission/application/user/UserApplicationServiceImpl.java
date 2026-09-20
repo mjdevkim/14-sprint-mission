@@ -1,6 +1,8 @@
 package com.sprint.mission.application.user;
 
-import com.sprint.mission.application.mapper.UserDtoMapper;
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
+import com.sprint.mission.repository.BinaryContentRepository;
+import com.sprint.mission.repository.UserStatusRepository;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
@@ -27,7 +29,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserApplicationServiceImpl implements UserApplicationService {
 
-    private final UserDtoMapper userDtoMapper;
+    private final BinaryContentRepository binaryContentRepository;
+    private final UserStatusRepository userStatusRepository;
     private final UserDomainService userDomainService;
     private final BinaryContentDomainService binaryContentDomainService;
     private final UserStatusDomainService userStatusDomainService;
@@ -74,7 +77,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 createdUser.getProfileId()
         );
 
-        return userDtoMapper.toDto(createdUser);
+        return toDto(createdUser);
     }
 
     private BinaryContent createBinaryContent(MultipartFile profileImageRequest) {
@@ -94,7 +97,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
         log.debug("User 단일 조회: userId={}", userId);
 
         User user = userDomainService.findById(userId);
-        return userDtoMapper.toDto(user);
+        return toDto(user);
     }
 
     @Override
@@ -161,7 +164,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 updatedUser.getProfileId()
         );
 
-        return userDtoMapper.toDto(updatedUser);
+        return toDto(updatedUser);
     }
 
     @Override
@@ -236,8 +239,18 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 );
             }
 
-            userResponses.add(userDtoMapper.toDto(user, userStatus));
+            userResponses.add(toDto(user, userStatus));
         }
         return userResponses;
+    }
+    private UserDto toDto(User user) {
+        return toDto(user, userStatusRepository.findByUserId(user.getId()).orElse(null));
+    }
+
+    private UserDto toDto(User user, UserStatus status) {
+        BinaryContentDto profile = user.getProfileId() == null ? null
+                : binaryContentRepository.findById(user.getProfileId())
+                        .map(BinaryContentDto::from).orElse(null);
+        return UserDto.from(user, profile, status);
     }
 }
