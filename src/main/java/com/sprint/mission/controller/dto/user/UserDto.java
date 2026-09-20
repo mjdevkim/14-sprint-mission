@@ -1,37 +1,45 @@
-package com.sprint.mission.application.user.dto;
+package com.sprint.mission.controller.dto.user;
 
 import com.sprint.mission.domain.User;
-import io.swagger.v3.oas.annotations.media.Schema;
+import com.sprint.mission.domain.UserStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Getter
+@ToString
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@Schema(name = "User")
-public class UserResponseDto {
+public class UserDto {
+
     UUID id;
     Instant createdAt;
     Instant updatedAt;
+
     String username;
     String email;
-    String password;
     UUID profileId;
+    Boolean online;
 
-    public static UserResponseDto from(User user) {
-        return new UserResponseDto(
+
+    // UserDto 통해
+    public static UserDto from(
+            User user,
+            UserStatus userStatus
+    ) {
+        return new UserDto(
                 user.getId(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getPassword(),
-                user.getProfileId()
+                user.getProfileId(),
+                userStatus != null && userStatus.isOnline()
         );
     }
 }

@@ -1,4 +1,4 @@
-package com.sprint.mission.application.user.dto;
+package com.sprint.mission.controller.dto.user;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -11,15 +11,15 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@Schema(description = "User 생성 정보")
-public class UserCreateRequest {
+@Schema(description = "수정할 User 정보")
+public class UserUpdateRequest {
     @NotBlank
-    String username;
+    String newUsername;
 
     @NotBlank
     @Email
-    String email;
+    String newEmail;
 
     @NotBlank
-    String password;
+    String newPassword;
 }
