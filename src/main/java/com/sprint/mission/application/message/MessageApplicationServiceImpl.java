@@ -1,7 +1,8 @@
 package com.sprint.mission.application.message;
 
+import com.sprint.mission.application.mapper.MessageDtoMapper;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
-import com.sprint.mission.controller.dto.message.MessageResponseDto;
+import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.Channel;
@@ -29,6 +30,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class MessageApplicationServiceImpl implements MessageApplicationService {
 
+    private final MessageDtoMapper messageDtoMapper;
     private final MessageDomainService messageDomainService;
     private final UserDomainService userDomainService;
     private final ChannelDomainService channelDomainService;
@@ -59,7 +61,7 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
 
 
     @Override
-    public MessageResponseDto create(
+    public MessageDto create(
             MessageCreateRequest messageCreateRequest,
             List<MultipartFile> attachments
     ) {
@@ -119,22 +121,22 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                 createdMessage.getAttachmentIds().size()
         );
 
-        return MessageResponseDto.from(createdMessage);
+        return messageDtoMapper.toDto(createdMessage);
     }
 
     @Override
-    public MessageResponseDto findById(UUID messageId) {
+    public MessageDto findById(UUID messageId) {
         log.debug("Message 단건 조회: messageId={}", messageId);
-        return MessageResponseDto.from(messageDomainService.findById(messageId));
+        return messageDtoMapper.toDto(messageDomainService.findById(messageId));
     }
 
     @Override
-    public List<MessageResponseDto> findAllByChannelId(UUID channelId) {
+    public List<MessageDto> findAllByChannelId(UUID channelId) {
         channelDomainService.findById(channelId);
 
-        List<MessageResponseDto> messageResponses = messageDomainService.findAllByChannelId(channelId)
+        List<MessageDto> messageResponses = messageDomainService.findAllByChannelId(channelId)
                 .stream()
-                .map(MessageResponseDto::from)
+                .map(messageDtoMapper::toDto)
                 .toList();
 
         log.debug(
@@ -147,7 +149,7 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
     }
 
     @Override
-    public MessageResponseDto update(
+    public MessageDto update(
             UUID messageId,
             MessageUpdateRequest messageUpdateRequest
     ) {
@@ -165,7 +167,7 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                 updatedMessage.getId()
         );
 
-        return MessageResponseDto.from(updatedMessage);
+        return messageDtoMapper.toDto(updatedMessage);
     }
 
     @Override

@@ -1,39 +1,22 @@
 package com.sprint.mission.controller.dto.channel;
 
-import com.sprint.mission.domain.Channel;
-import com.sprint.mission.domain.ChannelType;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
-
+import lombok.RequiredArgsConstructor;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
-
+import java.util.List;
+import com.sprint.mission.domain.ChannelType;
+import com.sprint.mission.controller.dto.user.UserDto;
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
+@Schema(name = "ChannelDto")
 public class ChannelDto {
-    UUID id;
-    ChannelType type;
-    String name;
-    String description;
-    List<UUID> participantIds;
-    Instant lastMessageAt;
+    private final UUID id;
+    private final ChannelType type;
+    private final String name;
+    private final String description;
+    private final List<UserDto> participants;
+    private final Instant lastMessageAt;
 
-    public static ChannelDto from(
-            Channel channel,
-            List<UUID> participantIds,
-            Instant lastMessageAt
-    ) {
-        return new ChannelDto(
-                channel.getId(),
-                channel.getChannelType(),
-                channel.getName(),
-                channel.getDescription(),
-                List.copyOf(participantIds),
-                lastMessageAt
-        );
-    }
 }

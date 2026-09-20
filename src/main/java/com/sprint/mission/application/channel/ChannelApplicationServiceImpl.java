@@ -1,8 +1,8 @@
 package com.sprint.mission.application.channel;
 
+import com.sprint.mission.application.mapper.UserDtoMapper;
 import com.sprint.mission.domain.*;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
-import com.sprint.mission.controller.dto.channel.ChannelResponseDto;
 import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelCreateRequest;
@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChannelApplicationServiceImpl implements ChannelApplicationService {
 
+    private final UserDtoMapper userDtoMapper;
     private final ChannelDomainService channelDomainService;
     private final ReadStatusDomainService readStatusDomainService;
     private final MessageDomainService messageDomainService;
@@ -40,7 +41,7 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
 
 
     @Override
-    public ChannelResponseDto createPublic(PublicChannelCreateRequest request) {
+    public ChannelDto createPublic(PublicChannelCreateRequest request) {
         Channel createdChannel = channelDomainService.create(
                 Channel.createPublic(
                         request.getName(),
@@ -48,11 +49,11 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
                 )
         );
 
-        return ChannelResponseDto.from(createdChannel);
+        return findById(createdChannel.getId());
     }
 
     @Override
-    public ChannelResponseDto createPrivate(PrivateChannelCreateRequest request) {
+    public ChannelDto createPrivate(PrivateChannelCreateRequest request) {
         List<UUID> participantUserIds = request.getParticipantIds()
                 .stream()
                 .distinct()
@@ -77,7 +78,7 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
                 participantUserIds.size()
         );
 
-        return ChannelResponseDto.from(createdChannel);
+        return findById(createdChannel.getId());
     }
 
     @Override
@@ -98,9 +99,9 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
                     .toList()
                 : List.of();
 
-        return ChannelDto.from(
-                channel,
-                participantUserIds,
+        return new ChannelDto(
+                channel.getId(), channel.getChannelType(), channel.getName(), channel.getDescription(),
+                participantUserIds.stream().map(userDtoMapper::findById).filter(Objects::nonNull).toList(),
                 mostRecentMessageAt
         );
     }
@@ -136,7 +137,7 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
 
     // 주의: PUBLIC 채널의 name과 description만 바꿀 수 있다.
     @Override
-    public ChannelResponseDto update(
+    public ChannelDto update(
             UUID channelId,
             PublicChannelUpdateRequest request
     ) {
@@ -153,7 +154,7 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
 
         log.info("Channel 수정 완료: channelId={}", updatedChannel.getId());
 
-        return ChannelResponseDto.from(updatedChannel);
+        return findById(updatedChannel.getId());
     }
 
     @Override

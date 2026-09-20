@@ -1,45 +1,18 @@
 package com.sprint.mission.controller.dto.user;
 
-import com.sprint.mission.domain.User;
-import com.sprint.mission.domain.UserStatus;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
-
-import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import java.util.UUID;
-
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 @Getter
-@ToString
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
+@Schema(name = "UserDto")
 public class UserDto {
+    private final UUID id;
+    private final String username;
+    private final String email;
+    private final BinaryContentDto profile;
+    private final boolean online;
 
-    UUID id;
-    Instant createdAt;
-    Instant updatedAt;
-
-    String username;
-    String email;
-    UUID profileId;
-    Boolean online;
-
-
-    // UserDto 통해
-    public static UserDto from(
-            User user,
-            UserStatus userStatus
-    ) {
-        return new UserDto(
-                user.getId(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getProfileId(),
-                userStatus != null && userStatus.isOnline()
-        );
-    }
 }

@@ -1,7 +1,7 @@
 package com.sprint.mission.application.binarycontent;
 
 import com.sprint.mission.domain.BinaryContent;
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentResponseDto;
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
@@ -24,7 +24,7 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
     private final MultipartFileConverter multipartFileConverter;
 
     @Override
-    public BinaryContentResponseDto create(MultipartFile multipartFile) {
+    public BinaryContentDto create(MultipartFile multipartFile) {
         MultipartFileDto sanitizedMultipartData = multipartFileConverter.convert(multipartFile);
 
         BinaryContent binaryContent = BinaryContent.create(
@@ -42,25 +42,25 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
                 createdBinaryContent.getBytes().length
         );
 
-        return BinaryContentResponseDto.from(createdBinaryContent);
+        return BinaryContentDto.from(createdBinaryContent);
     }
 
     @Override
-    public BinaryContentResponseDto findById(UUID binaryContentId) {
+    public BinaryContentDto findById(UUID binaryContentId) {
         BinaryContent binaryContent = binaryContentDomainService.findById(binaryContentId);
         log.debug(
                 "BinaryContent 단건 조회: binaryContentId={}",
                 binaryContentId
         );
-        return BinaryContentResponseDto.from(binaryContent);
+        return BinaryContentDto.from(binaryContent);
     }
 
     @Override
-    public List<BinaryContentResponseDto> findAllByIdIn(List<UUID> binaryContentIds) {
-        List<BinaryContentResponseDto> responses =
+    public List<BinaryContentDto> findAllByIdIn(List<UUID> binaryContentIds) {
+        List<BinaryContentDto> responses =
                 binaryContentDomainService.findAllByIdIn(binaryContentIds)
                         .stream()
-                        .map(BinaryContentResponseDto::from)
+                        .map(BinaryContentDto::from)
                         .toList();
 
         log.debug(
@@ -70,6 +70,12 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
         );
 
         return responses;
+    }
+
+    @Override
+    public BinaryContentDownload download(UUID binaryContentId) {
+        BinaryContent content = binaryContentDomainService.findById(binaryContentId);
+        return new BinaryContentDownload(content.getFileName(), content.getContentType(), content.getBytes());
     }
 
     @Override

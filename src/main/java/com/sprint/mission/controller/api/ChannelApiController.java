@@ -2,7 +2,6 @@ package com.sprint.mission.controller.api;
 
 import com.sprint.mission.application.channel.ChannelApplicationService;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
-import com.sprint.mission.controller.dto.channel.ChannelResponseDto;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
@@ -46,14 +45,14 @@ public class ChannelApiController {
             description = "Public Channel이 성공적으로 생성됨",
             content = @Content(
                     mediaType = "*/*",
-                    schema = @Schema(implementation = ChannelResponseDto.class)
+                    schema = @Schema(implementation = ChannelDto.class)
             )
     )
     @PostMapping("/public")
-    public ResponseEntity<ChannelResponseDto> create(
+    public ResponseEntity<ChannelDto> create(
             @Valid @RequestBody PublicChannelCreateRequest request
     ) {
-        ChannelResponseDto createdChannel = channelApplicationService.createPublic(request);
+        ChannelDto createdChannel = channelApplicationService.createPublic(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdChannel);
@@ -65,14 +64,14 @@ public class ChannelApiController {
             description = "Private Channel이 성공적으로 생성됨",
             content = @Content(
                     mediaType = "*/*",
-                    schema = @Schema(implementation = ChannelResponseDto.class)
+                    schema = @Schema(implementation = ChannelDto.class)
             )
     )
     @PostMapping("/private")
-    public ResponseEntity<ChannelResponseDto> create(
+    public ResponseEntity<ChannelDto> create(
             @Valid @RequestBody PrivateChannelCreateRequest request
     ) {
-        ChannelResponseDto createdChannel = channelApplicationService.createPrivate(request);
+        ChannelDto createdChannel = channelApplicationService.createPrivate(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdChannel);
@@ -85,7 +84,7 @@ public class ChannelApiController {
                     description = "Channel 정보가 성공적으로 수정됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = ChannelResponseDto.class)
+                            schema = @Schema(implementation = ChannelDto.class)
                     )
             ),
             @ApiResponse(
@@ -106,12 +105,12 @@ public class ChannelApiController {
             )
     })
     @PatchMapping("/{channelId}")
-    public ResponseEntity<ChannelResponseDto> update(
+    public ResponseEntity<ChannelDto> update(
             @Parameter(description = "수정할 Channel ID")
             @NotNull @PathVariable UUID channelId,
             @Valid @RequestBody PublicChannelUpdateRequest request
     ) {
-        ChannelResponseDto updatedChannel = channelApplicationService.update(channelId, request);
+        ChannelDto updatedChannel = channelApplicationService.update(channelId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedChannel);

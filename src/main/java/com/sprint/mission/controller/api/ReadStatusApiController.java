@@ -2,7 +2,7 @@ package com.sprint.mission.controller.api;
 
 import com.sprint.mission.application.readstatus.ReadStatusApplicationService;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusCreateRequest;
-import com.sprint.mission.controller.dto.readstatus.ReadStatusResponseDto;
+import com.sprint.mission.controller.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +44,7 @@ public class ReadStatusApiController {
                     description = "Message 읽음 상태가 성공적으로 생성됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = ReadStatusResponseDto.class)
+                            schema = @Schema(implementation = ReadStatusDto.class)
                     )
             ),
             @ApiResponse(
@@ -69,10 +69,10 @@ public class ReadStatusApiController {
             )
     })
     @PostMapping
-    public ResponseEntity<ReadStatusResponseDto> create(
+    public ResponseEntity<ReadStatusDto> create(
             @Valid @RequestBody ReadStatusCreateRequest request
     ) {
-        ReadStatusResponseDto createdReadStatus = readStatusApplicationService.create(request);
+        ReadStatusDto createdReadStatus = readStatusApplicationService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdReadStatus);
@@ -85,16 +85,16 @@ public class ReadStatusApiController {
             content = @Content(
                     mediaType = "*/*",
                     array = @ArraySchema(
-                            schema = @Schema(implementation = ReadStatusResponseDto.class)
+                            schema = @Schema(implementation = ReadStatusDto.class)
                     )
             )
     )
     @GetMapping
-    public ResponseEntity<List<ReadStatusResponseDto>> findAllByUserId(
+    public ResponseEntity<List<ReadStatusDto>> findAllByUserId(
             @Parameter(description = "조회할 User ID")
             @NotNull @RequestParam UUID userId
     ) {
-        List<ReadStatusResponseDto> readStatusListByUserId = readStatusApplicationService.findAllByUserId(userId);
+        List<ReadStatusDto> readStatusListByUserId = readStatusApplicationService.findAllByUserId(userId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(readStatusListByUserId);
@@ -107,7 +107,7 @@ public class ReadStatusApiController {
                     description = "Message 읽음 상태가 성공적으로 수정됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = ReadStatusResponseDto.class)
+                            schema = @Schema(implementation = ReadStatusDto.class)
                     )
             ),
             @ApiResponse(
@@ -122,12 +122,12 @@ public class ReadStatusApiController {
             )
     })
     @PatchMapping("/{readStatusId}")
-    public ResponseEntity<ReadStatusResponseDto> update(
+    public ResponseEntity<ReadStatusDto> update(
             @Parameter(description = "수정할 읽음 상태 ID")
             @NotNull @PathVariable UUID readStatusId,
             @Valid @RequestBody ReadStatusUpdateRequest request
     ) {
-        ReadStatusResponseDto updatedReadStatus = readStatusApplicationService.update(readStatusId, request);
+        ReadStatusDto updatedReadStatus = readStatusApplicationService.update(readStatusId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedReadStatus);

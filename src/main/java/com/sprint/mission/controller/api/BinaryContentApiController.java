@@ -1,7 +1,7 @@
 package com.sprint.mission.controller.api;
 
 import com.sprint.mission.application.binarycontent.BinaryContentApplicationService;
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentResponseDto;
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sprint.mission.application.binarycontent.BinaryContentDownload;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +43,7 @@ public class BinaryContentApiController {
                     description = "첨부 파일 조회 성공",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = BinaryContentResponseDto.class)
+                            schema = @Schema(implementation = BinaryContentDto.class)
                     )
             ),
             @ApiResponse(
@@ -52,7 +58,7 @@ public class BinaryContentApiController {
             )
     })
     @GetMapping("/{binaryContentId}")
-    public BinaryContentResponseDto findById(
+    public BinaryContentDto findById(
             @Parameter(description = "조회할 첨부 파일 ID")
             @NotNull @PathVariable UUID binaryContentId
     ) {
@@ -67,15 +73,29 @@ public class BinaryContentApiController {
             content = @Content(
                     mediaType = "*/*",
                     array = @ArraySchema(
-                            schema = @Schema(implementation = BinaryContentResponseDto.class)
+                            schema = @Schema(implementation = BinaryContentDto.class)
                     )
             )
     )
     @GetMapping
-    public List<BinaryContentResponseDto> findAllByIdIn(
+    public List<BinaryContentDto> findAllByIdIn(
             @Parameter(description = "조회할 첨부 파일 ID 목록")
             @RequestParam List<UUID> binaryContentIds
     ) {
         return binaryContentApplicationService.findAllByIdIn(binaryContentIds);
+    }
+    @Operation(summary = "파일 다운로드")
+    @ApiResponse(responseCode = "200", description = "파일 다운로드 성공",
+            content = @Content(schema = @Schema(type = "string", format = "binary")))
+    @GetMapping("/{binaryContentId}/download")
+    public ResponseEntity<byte[]> download(@PathVariable UUID binaryContentId) {
+        BinaryContentDownload file = binaryContentApplicationService.download(binaryContentId);
+        MediaType contentType = file.contentType() == null
+                ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(file.contentType());
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
+                .body(file.bytes());
     }
 }

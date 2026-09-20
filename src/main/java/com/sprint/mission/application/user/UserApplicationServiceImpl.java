@@ -1,11 +1,11 @@
 package com.sprint.mission.application.user;
 
+import com.sprint.mission.application.mapper.UserDtoMapper;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
-import com.sprint.mission.controller.dto.user.UserResponseDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
-import com.sprint.mission.controller.dto.userstatus.UserStatusResponseDto;
-import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequestDto;
+import com.sprint.mission.controller.dto.userstatus.UserStatusDto;
+import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequest;
 import com.sprint.mission.domain.*;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.multipart.MultipartFileConverter;
@@ -27,6 +27,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserApplicationServiceImpl implements UserApplicationService {
 
+    private final UserDtoMapper userDtoMapper;
     private final UserDomainService userDomainService;
     private final BinaryContentDomainService binaryContentDomainService;
     private final UserStatusDomainService userStatusDomainService;
@@ -34,7 +35,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
 
 
     @Override
-    public UserResponseDto create(
+    public UserDto create(
             UserCreateRequest userCreateRequest,
             MultipartFile profileImageRequest
     ) {
@@ -73,7 +74,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 createdUser.getProfileId()
         );
 
-        return UserResponseDto.from(createdUser);
+        return userDtoMapper.toDto(createdUser);
     }
 
     private BinaryContent createBinaryContent(MultipartFile profileImageRequest) {
@@ -89,18 +90,18 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     }
 
     @Override
-    public UserResponseDto findById(UUID userId) {
+    public UserDto findById(UUID userId) {
         log.debug("User 단일 조회: userId={}", userId);
 
         User user = userDomainService.findById(userId);
-        return UserResponseDto.from(user);
+        return userDtoMapper.toDto(user);
     }
 
     @Override
     public List<UserDto> findAll() {
         List<User> users = userDomainService.findAll();
         List<UserStatus> userStatuses = userStatusDomainService.findAll();
-        List<UserDto> userResponses = toUserResponseDtoList(users, userStatuses);
+        List<UserDto> userResponses = toUserDtoList(users, userStatuses);
 
         log.debug("User 다건 조회: size={}", userResponses.size());
 
@@ -108,7 +109,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     }
 
     @Override
-    public UserResponseDto update(
+    public UserDto update(
             UUID userId,
             UserUpdateRequest userUpdateRequest,
             MultipartFile profileImage
@@ -160,13 +161,13 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 updatedUser.getProfileId()
         );
 
-        return UserResponseDto.from(updatedUser);
+        return userDtoMapper.toDto(updatedUser);
     }
 
     @Override
-    public UserStatusResponseDto updateUserStatusByUserId(
+    public UserStatusDto updateUserStatusByUserId(
             UUID userId,
-            UserStatusUpdateRequestDto request
+            UserStatusUpdateRequest request
     ) {
         log.info("User 업데이트 시작: userId={}", userId);
 
@@ -181,7 +182,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 updatedUserStatus.getLastActiveAt()
         );
 
-        return UserStatusResponseDto.from(updatedUserStatus);
+        return UserStatusDto.from(updatedUserStatus);
     }
 
     @Override
@@ -213,7 +214,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
 
 
     // 사용자와 그 사용자의 status까지 같이 반환
-    private List<UserDto> toUserResponseDtoList(
+    private List<UserDto> toUserDtoList(
             List<User> users,
             List<UserStatus> userStatuses
     ) {
@@ -223,7 +224,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             userStatusMap.put(userStatus.getUserId(), userStatus);
         }
 
-        // construct UserResponseDto
+        // construct UserDto
         List<UserDto> userResponses = new ArrayList<>();
         for (User user : users) {
             UserStatus userStatus = userStatusMap.get(user.getId());
@@ -235,7 +236,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 );
             }
 
-            userResponses.add(UserDto.from(user, userStatus));
+            userResponses.add(userDtoMapper.toDto(user, userStatus));
         }
         return userResponses;
     }

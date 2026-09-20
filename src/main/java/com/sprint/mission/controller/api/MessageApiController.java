@@ -2,7 +2,7 @@ package com.sprint.mission.controller.api;
 
 import com.sprint.mission.application.message.MessageApplicationService;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
-import com.sprint.mission.controller.dto.message.MessageResponseDto;
+import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,7 +47,7 @@ public class MessageApiController {
                     description = "Message가 성공적으로 생성됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = MessageResponseDto.class)
+                            schema = @Schema(implementation = MessageDto.class)
                     )
             ),
             @ApiResponse(
@@ -62,12 +62,12 @@ public class MessageApiController {
             )
     })
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MessageResponseDto> create(
+    public ResponseEntity<MessageDto> create(
             @Valid @RequestPart("messageCreateRequest") MessageCreateRequest request,
             @Parameter(description = "Message 첨부 파일들")
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments
     ) {
-        MessageResponseDto createdMessage = messageApplicationService.create(request, attachments);
+        MessageDto createdMessage = messageApplicationService.create(request, attachments);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdMessage);
@@ -80,7 +80,7 @@ public class MessageApiController {
                     description = "Message가 성공적으로 수정됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = MessageResponseDto.class)
+                            schema = @Schema(implementation = MessageDto.class)
                     )
             ),
             @ApiResponse(
@@ -93,12 +93,12 @@ public class MessageApiController {
             )
     })
     @PatchMapping("/{messageId}")
-    public ResponseEntity<MessageResponseDto> update(
+    public ResponseEntity<MessageDto> update(
             @Parameter(description = "수정할 Message ID")
             @NotNull @PathVariable UUID messageId,
             @Valid @RequestBody MessageUpdateRequest request
     ) {
-        MessageResponseDto updatedMessage = messageApplicationService.update(messageId, request);
+        MessageDto updatedMessage = messageApplicationService.update(messageId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedMessage);
@@ -137,16 +137,16 @@ public class MessageApiController {
             content = @Content(
                     mediaType = "*/*",
                     array = @ArraySchema(
-                            schema = @Schema(implementation = MessageResponseDto.class)
+                            schema = @Schema(implementation = MessageDto.class)
                     )
             )
     )
     @GetMapping
-    public ResponseEntity<List<MessageResponseDto>> findAllByChannelId(
+    public ResponseEntity<List<MessageDto>> findAllByChannelId(
             @Parameter(description = "조회할 Channel ID")
             @NotNull @RequestParam UUID channelId
     ) {
-        List<MessageResponseDto> channelMessageList = messageApplicationService.findAllByChannelId(channelId);
+        List<MessageDto> channelMessageList = messageApplicationService.findAllByChannelId(channelId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(channelMessageList);

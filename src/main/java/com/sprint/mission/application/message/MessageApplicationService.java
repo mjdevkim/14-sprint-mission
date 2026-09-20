@@ -1,7 +1,7 @@
 package com.sprint.mission.application.message;
 
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
-import com.sprint.mission.controller.dto.message.MessageResponseDto;
+import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 public interface MessageApplicationService {
-    MessageResponseDto create(
+    MessageDto create(
             @NotNull @Valid MessageCreateRequest messageCreateRequest,
             List<MultipartFile> attachment
     );
-    MessageResponseDto findById(@NotNull UUID messageId);
-    List<MessageResponseDto> findAllByChannelId(@NotNull UUID channelId);
-    MessageResponseDto update(
+    MessageDto findById(@NotNull UUID messageId);
+    List<MessageDto> findAllByChannelId(@NotNull UUID channelId);
+    MessageDto update(
             @NotNull UUID messageId,
             @NotNull @Valid MessageUpdateRequest messageUpdateRequest
     );

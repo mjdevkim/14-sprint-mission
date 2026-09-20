@@ -3,10 +3,9 @@ package com.sprint.mission.controller.api;
 import com.sprint.mission.application.user.UserApplicationService;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
-import com.sprint.mission.controller.dto.user.UserResponseDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
-import com.sprint.mission.controller.dto.userstatus.UserStatusResponseDto;
-import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequestDto;
+import com.sprint.mission.controller.dto.userstatus.UserStatusDto;
+import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -51,7 +50,7 @@ public class UserApiController {
                     description = "User가 성공적으로 생성됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = UserResponseDto.class)
+                            schema = @Schema(implementation = UserDto.class)
                     )
             ),
             @ApiResponse(
@@ -66,12 +65,12 @@ public class UserApiController {
             )
     })
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserResponseDto> create(
+    public ResponseEntity<UserDto> create(
             @Valid @RequestPart("userCreateRequest") UserCreateRequest userCreateRequest,
             @Parameter(description = "User 프로필 이미지")
             @RequestPart(value = "profile", required = false) MultipartFile profileImage
     ) {
-        UserResponseDto createdUser = userApplicationService.create(userCreateRequest, profileImage);
+        UserDto createdUser = userApplicationService.create(userCreateRequest, profileImage);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdUser);
@@ -84,7 +83,7 @@ public class UserApiController {
                     description = "User 정보가 성공적으로 수정됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = UserResponseDto.class)
+                            schema = @Schema(implementation = UserDto.class)
                     )
             ),
             @ApiResponse(
@@ -107,14 +106,14 @@ public class UserApiController {
             )
     })
     @PatchMapping(value = "/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserResponseDto> update(
+    public ResponseEntity<UserDto> update(
             @Parameter(description = "수정할 User ID")
             @NotNull @PathVariable UUID userId,
             @Valid @RequestPart("userUpdateRequest") UserUpdateRequest userUpdateRequest,
             @Parameter(description = "수정할 User 프로필 이미지")
             @RequestPart(value = "profile", required = false) MultipartFile profileImage
     ) {
-        UserResponseDto updatedUser = userApplicationService.update(
+        UserDto updatedUser = userApplicationService.update(
                 userId,
                 userUpdateRequest,
                 profileImage
@@ -176,7 +175,7 @@ public class UserApiController {
                     description = "User 온라인 상태가 성공적으로 업데이트됨",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = UserStatusResponseDto.class)
+                            schema = @Schema(implementation = UserStatusDto.class)
                     )
             ),
             @ApiResponse(
@@ -191,12 +190,12 @@ public class UserApiController {
             )
     })
     @PatchMapping("/{userId}/userStatus")
-    public ResponseEntity<UserStatusResponseDto> updateUserStatusByUserId(
+    public ResponseEntity<UserStatusDto> updateUserStatusByUserId(
             @Parameter(description = "상태를 변경할 User ID")
             @NotNull @PathVariable UUID userId,
-            @Valid @RequestBody UserStatusUpdateRequestDto request
+            @Valid @RequestBody UserStatusUpdateRequest request
     ) {
-        UserStatusResponseDto updatedUserStatus =
+        UserStatusDto updatedUserStatus =
                 userApplicationService.updateUserStatusByUserId(userId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)

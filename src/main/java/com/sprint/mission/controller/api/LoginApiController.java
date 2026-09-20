@@ -1,8 +1,8 @@
 package com.sprint.mission.controller.api;
 
 import com.sprint.mission.application.auth.AuthApplicationService;
-import com.sprint.mission.controller.dto.auth.LoginRequestDto;
-import com.sprint.mission.controller.dto.user.UserResponseDto;
+import com.sprint.mission.controller.dto.auth.LoginRequest;
+import com.sprint.mission.controller.dto.user.UserDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -34,7 +34,7 @@ public class LoginApiController {
                     description = "로그인 성공",
                     content = @Content(
                             mediaType = "*/*",
-                            schema = @Schema(implementation = UserResponseDto.class)
+                            schema = @Schema(implementation = UserDto.class)
                     )
             ),
             @ApiResponse(
@@ -57,10 +57,10 @@ public class LoginApiController {
             )
     })
     @PostMapping("/login")
-    public ResponseEntity<UserResponseDto> login(
-            @Valid @RequestBody LoginRequestDto loginRequest
+    public ResponseEntity<UserDto> login(
+            @Valid @RequestBody LoginRequest loginRequest
     ) {
-        UserResponseDto loggedInUser = authApplicationService.login(loginRequest);
+        UserDto loggedInUser = authApplicationService.login(loginRequest);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(loggedInUser);

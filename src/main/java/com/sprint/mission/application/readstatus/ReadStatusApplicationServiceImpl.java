@@ -2,7 +2,7 @@ package com.sprint.mission.application.readstatus;
 
 import com.sprint.mission.domain.ReadStatus;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusCreateRequest;
-import com.sprint.mission.controller.dto.readstatus.ReadStatusResponseDto;
+import com.sprint.mission.controller.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
 import com.sprint.mission.service.channel.ChannelDomainService;
 import com.sprint.mission.service.readstatus.ReadStatusDomainService;
@@ -26,7 +26,7 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
     private final ChannelDomainService channelDomainService;
 
     @Override
-    public ReadStatusResponseDto create(ReadStatusCreateRequest request) {
+    public ReadStatusDto create(ReadStatusCreateRequest request) {
         userDomainService.findById(request.getUserId());
         channelDomainService.findById(request.getChannelId());
 
@@ -37,17 +37,17 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
         );
         ReadStatus createdReadStatus = readStatusDomainService.create(readStatus);
 
-        return ReadStatusResponseDto.from(createdReadStatus);
+        return ReadStatusDto.from(createdReadStatus);
     }
 
     @Override
-    public List<ReadStatusResponseDto> findAllByUserId(UUID userId) {
+    public List<ReadStatusDto> findAllByUserId(UUID userId) {
         userDomainService.findById(userId);
 
-        List<ReadStatusResponseDto> responses =
+        List<ReadStatusDto> responses =
                 readStatusDomainService.findAllByUserId(userId)
                         .stream()
-                        .map(ReadStatusResponseDto::from)
+                        .map(ReadStatusDto::from)
                         .toList();
 
         log.info("User ReadStatus 목록 조회 완료: userId={}, count={}", userId, responses.size());
@@ -56,7 +56,7 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
     }
 
     @Override
-    public ReadStatusResponseDto update(
+    public ReadStatusDto update(
             UUID readStatusId,
             ReadStatusUpdateRequest request
     ) {
@@ -72,6 +72,6 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
                 updatedReadStatus.getLastReadAt()
         );
 
-        return ReadStatusResponseDto.from(updatedReadStatus);
+        return ReadStatusDto.from(updatedReadStatus);
     }
 }
