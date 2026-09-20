@@ -1,52 +1,59 @@
 package com.sprint.mission.domain;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import com.sprint.mission.domain.base.BaseUpdatableEntity;
+import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.Objects;
+
+import static lombok.AccessLevel.PROTECTED;
 
 // 사용자별 각 채널에 읽지 않은 메시지를 확인하기 위해 활용.
+@Entity
+@Table(
+        name = "read_statuses",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "channel_id"})
+)
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ReadStatus implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+@NoArgsConstructor(access = PROTECTED)
+public class ReadStatus extends BaseUpdatableEntity {
 
-    private final UUID id;
-    private final Instant createdAt;
-    private Instant updatedAt;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)    // ReadStatus N : User 1
+    @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private User user;
 
-    private final UUID userId;
-    private final UUID channelId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)    // ReadStatus N : Channel 1
+    @JoinColumn(name = "channel_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Channel channel;
 
+    @Column(name = "last_read_at", nullable = false)
     private Instant lastReadAt;
 
-    private ReadStatus(UUID userId, UUID channelId, Instant lastReadAt) {
-        this.id = UUID.randomUUID();
-        this.createdAt = Instant.now();
-        this.updatedAt = this.createdAt;
-        this.userId = userId;
-        this.channelId = channelId;
+    private ReadStatus(User user, Channel channel, Instant lastReadAt) {
+        this.user = user;
+        this.channel = channel;
         this.lastReadAt = lastReadAt;
     }
 
-    public static ReadStatus create(UUID userId, UUID channelId) {
+    public static ReadStatus create(User user, Channel channel) {
+        return new ReadStatus(user, channel, Instant.now());
+    }
+
+    public static ReadStatus create(User user, Channel channel, Instant lastReadAt) {
         return new ReadStatus(
-                userId, channelId, null
+                user,
+                channel,
+                Objects.isNull(lastReadAt) ? Instant.now() : lastReadAt
         );
     }
 
-    public static ReadStatus create(UUID userId, UUID channelId, Instant lastReadAt) {
-        return new ReadStatus(userId, channelId, lastReadAt);
-    }
-
-
     public void updateLastReadAt(Instant newLastReadAt) {
         this.lastReadAt = newLastReadAt;
-        this.updatedAt = Instant.now();
     }
 }

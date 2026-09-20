@@ -1,79 +1,60 @@
 package com.sprint.mission.domain;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import com.sprint.mission.domain.base.BaseUpdatableEntity;
+import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
+import static lombok.AccessLevel.PROTECTED;
+
+@Entity
+@Table(name = "messages")
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Message implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+@NoArgsConstructor(access = PROTECTED)
+public class Message extends BaseUpdatableEntity {
 
-    private final UUID id;
-    private final Instant createdAt;
-    private Instant updatedAt;
-
+    @Column(name = "content", columnDefinition = "text")
     private String content;
-    private UUID senderId;      // 메시지를 작성한 user의 id
-    private UUID channelId;     // 메시지가 속한 channel의 id
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // Message N : Channel 1
+    @JoinColumn(name = "channel_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)    // 채널이 삭제 -> 메시지도 삭제
+    private Channel channel;
 
     private List<UUID> attachmentIds;   // 첨부파일 리스트
 
     private Message(
             String content,
-            UUID senderId,
-            UUID channelId,
-            List<UUID> attachmentIds
+            User author,
+            Channel channel,
+            List<BinaryContent> attachments
     ) {
-        this.id = UUID.randomUUID();
-        this.createdAt = Instant.now();
-        this.updatedAt = this.createdAt;
         this.content = content;
-        this.senderId = senderId;
-        this.channelId = channelId;
-
-        if (Objects.isNull(attachmentIds)) {
-            this.attachmentIds = List.of();
-        } else {
-            this.attachmentIds = List.copyOf(attachmentIds);
+        this.author = author;
+        this.channel = channel;
+        if (Objects.nonNull(attachments)) {
+            this.attachments.addAll(attachments);
         }
     }
 
     public static Message create(
             String content,
-            UUID senderId,
-            UUID channelId,
-            List<UUID> attachmentIds
+            User author,
+            Channel channel,
+            List<BinaryContent> attachments
     ) {
-        return new Message(
-                content, senderId, channelId, attachmentIds
-        );
+        return new Message(content, author, channel, attachments);
     }
 
     public void updateContent(String content) {
         if (Objects.nonNull(content) && !content.equals(this.content)) {
             this.content = content;
-            this.updatedAt = Instant.now();
         }
-    }
-
-    public Message copy() {
-        return new Message(
-                this.id,
-                this.createdAt,
-                this.updatedAt,
-                this.content,
-                this.senderId,
-                this.channelId,
-                this.attachmentIds
-        );
     }
 }

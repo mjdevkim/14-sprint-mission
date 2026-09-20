@@ -1,41 +1,38 @@
 package com.sprint.mission.domain;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import com.sprint.mission.domain.base.BaseUpdatableEntity;
+import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
+import static lombok.AccessLevel.PROTECTED;
+
+@Entity
+@Table(name = "channels")
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Channel implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+@NoArgsConstructor(access = PROTECTED)
+public class Channel extends BaseUpdatableEntity {
 
-    private final UUID id;
-    private final Instant createdAt;
-    private Instant updatedAt;
-
+    @Column(name = "name", length = 100)
     private String name;
+
+    @Column(name = "description", length = 500)
     private String description;
-    private ChannelType channelType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, length = 10)
+    private ChannelType type;
 
     // ChannelCreateDto를 통해 Channel 객체 생성, 따라서 private으로
     private Channel(
             String name,
             String description,
-            ChannelType channelType) {
-        this.id = UUID.randomUUID();
-        this.createdAt = Instant.now();
-        this.updatedAt = this.createdAt;
-
+            ChannelType type) {
         this.name = name;
         this.description = description;
-        this.channelType = channelType;
+        this.type = type;
     }
 
     // Public Channel 객체를 생성하는 정적 팩토리 메소드
@@ -47,7 +44,7 @@ public class Channel implements Serializable {
         );
     }
 
-    // Public Channel 객체를 생성하는 정적 팩토리 메소드
+    // Private Channel 객체를 생성하는 정적 팩토리 메소드
     public static Channel createPrivate() {
         return new Channel(
                 null,
@@ -60,35 +57,16 @@ public class Channel implements Serializable {
             String name,
             String description
     ) {
-        boolean isUpdated = false;
-
         if (Objects.nonNull(name) &&
             !Objects.equals(name, this.name)
         ) {
-            isUpdated = true;
             this.name = name;
         }
 
         if (Objects.nonNull(description) &&
             !Objects.equals(description, this.description)
         ) {
-            isUpdated = true;
             this.description = description;
         }
-
-        if (isUpdated) {
-            this.updatedAt = Instant.now();
-        }
-    }
-
-    public Channel copy() {
-        return new Channel(
-                this.id,
-                this.createdAt,
-                this.updatedAt,
-                this.name,
-                this.description,
-                this.channelType
-        );
     }
 }

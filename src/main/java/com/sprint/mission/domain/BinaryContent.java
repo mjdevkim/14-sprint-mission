@@ -1,53 +1,42 @@
 package com.sprint.mission.domain;
 
+import com.sprint.mission.domain.base.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.NoArgsConstructor;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.UUID;
+import static lombok.AccessLevel.PROTECTED;
 
-@Slf4j
+@Entity
+@Table(name = "binary_contents")
 @Getter
-public class BinaryContent implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+@NoArgsConstructor(access = PROTECTED)
+public class BinaryContent extends BaseEntity {
 
-    private final UUID id;
-    private final Instant createdAt;
+    @Column(name = "file_name", nullable = false, length = 255)
+    private String fileName;
 
-    private final String fileName;
-    private final String contentType;
-    private final byte[] bytes;
+    @Column(name = "size", nullable = false)
+    private Long size;
 
+    @Column(name = "content_type", nullable = false, length = 100)
+    private String contentType;
+
+    @Column(name = "bytes", nullable = false)
+    private byte[] bytes;
 
     private BinaryContent(String fileName, String contentType, byte[] bytes) {
-        this.id = UUID.randomUUID();
-        this.createdAt = Instant.now();
         this.fileName = fileName;
         this.contentType = contentType;
+        this.size = (long) bytes.length;
         this.bytes = bytes;
     }
 
     public static BinaryContent create(String fileName, String contentType, byte[] fileBytes) {
         return new BinaryContent(fileName, contentType, fileBytes);
     }
-
-//    public static BinaryContent create(MultipartFile multipartFile) {
-//        BinaryContent newBinaryContent = null;
-//
-//        try {
-//            newBinaryContent = new BinaryContent(
-//                    multipartFile.getOriginalFilename(),
-//                    multipartFile.getBytes()
-//            );
-//        } catch (Exception e) {
-//            log.warn("엥? Binary Content 변환 안됨");
-//        }
-//
-//        return newBinaryContent;
-//    }
 
     public byte[] getBytes() {
         return this.bytes.clone();
