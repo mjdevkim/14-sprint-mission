@@ -1,6 +1,8 @@
 package com.sprint.mission.application.readstatus;
 
+import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ReadStatus;
+import com.sprint.mission.domain.User;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusCreateRequest;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
@@ -10,6 +12,7 @@ import com.sprint.mission.service.user.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @Validated
+@Transactional
 @RequiredArgsConstructor
 public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationService {
 
@@ -27,12 +31,12 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
 
     @Override
     public ReadStatusDto create(ReadStatusCreateRequest request) {
-        userDomainService.findById(request.getUserId());
-        channelDomainService.findById(request.getChannelId());
+        User user = userDomainService.findById(request.getUserId());
+        Channel channel = channelDomainService.findById(request.getChannelId());
 
         ReadStatus readStatus = ReadStatus.create(
-                request.getUserId(),
-                request.getChannelId(),
+                user,
+                channel,
                 request.getLastReadAt()
         );
         ReadStatus createdReadStatus = readStatusDomainService.create(readStatus);
@@ -67,8 +71,8 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
         log.info(
                 "ReadStatus 읽음 시간 갱신: readStatusId={}, userId={}, channelId={}, lastReadAt={}",
                 updatedReadStatus.getId(),
-                updatedReadStatus.getUserId(),
-                updatedReadStatus.getChannelId(),
+                updatedReadStatus.getUser().getId(),
+                updatedReadStatus.getChannel().getId(),
                 updatedReadStatus.getLastReadAt()
         );
 

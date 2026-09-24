@@ -1,15 +1,14 @@
 package com.sprint.mission.application.user;
 
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
-import com.sprint.mission.repository.BinaryContentRepository;
-import com.sprint.mission.repository.UserStatusRepository;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
 import com.sprint.mission.controller.dto.userstatus.UserStatusDto;
 import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequest;
-import com.sprint.mission.domain.*;
 import com.sprint.mission.domain.BinaryContent;
+import com.sprint.mission.domain.User;
+import com.sprint.mission.domain.UserStatus;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
@@ -18,24 +17,24 @@ import com.sprint.mission.service.userstatus.UserStatusDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @Validated
+@Transactional
 @RequiredArgsConstructor
 public class UserApplicationServiceImpl implements UserApplicationService {
-
-    private final BinaryContentRepository binaryContentRepository;
-    private final UserStatusRepository userStatusRepository;
     private final UserDomainService userDomainService;
     private final BinaryContentDomainService binaryContentDomainService;
     private final UserStatusDomainService userStatusDomainService;
     private final MultipartFileConverter multipartFileConverter;
-
 
     @Override
     public UserDto create(
@@ -44,7 +43,6 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     ) {
         // generate binary content
         BinaryContent createdProfileImage = null;
-
         if (Objects.nonNull(profileImageRequest)) {
             createdProfileImage = createBinaryContent(profileImageRequest);
             log.info(
@@ -60,21 +58,17 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 Objects.isNull(createdProfileImage) ? "No Pfp" : createdProfileImage.getId()
         );
 
-        // user 생성
         User createdUser = userDomainService.create(User.create(
                 userCreateRequest.getUsername(),
                 userCreateRequest.getEmail(),
                 userCreateRequest.getPassword(),
-                (Objects.nonNull(createdProfileImage)) ? createdProfileImage.getId() : null
+                createdProfileImage
         ));
-
-        // user의 user status 생성
-        userStatusDomainService.create(UserStatus.create(createdUser.getId()));
 
         log.info(
                 "User 생성 완료: userId={}, profileId={}",
                 createdUser.getId(),
-                createdUser.getProfileId()
+                Objects.isNull(createdUser.getProfile()) ? null : createdUser.getProfile().getId()
         );
 
         return toDto(createdUser);
@@ -82,7 +76,6 @@ public class UserApplicationServiceImpl implements UserApplicationService {
 
     private BinaryContent createBinaryContent(MultipartFile profileImageRequest) {
         MultipartFileDto converted = multipartFileConverter.convert(profileImageRequest);
-
         BinaryContent binaryContent = BinaryContent.create(
                 converted.getFileName(),
                 converted.getContentType(),
@@ -93,21 +86,22 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto findById(UUID userId) {
         log.debug("User 단일 조회: userId={}", userId);
-
         User user = userDomainService.findById(userId);
+
         return toDto(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> findAll() {
-        List<User> users = userDomainService.findAll();
-        List<UserStatus> userStatuses = userStatusDomainService.findAll();
-        List<UserDto> userResponses = toUserDtoList(users, userStatuses);
+        List<UserDto> userResponses = userDomainService.findAll().stream()
+                .map(this::toDto)
+                .toList();
 
         log.debug("User 다건 조회: size={}", userResponses.size());
-
         return userResponses;
     }
 
@@ -118,8 +112,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             MultipartFile profileImage
     ) {
         User updatingUser = userDomainService.findById(userId);
-        UUID oldProfileId = updatingUser.getProfileId();
-        UserStatus userStatus = userStatusDomainService.findByUserId(userId);
+        BinaryContent oldProfile = updatingUser.getProfile();
 
         log.info(
                 "User 수정 시작: userId={}, replaceProfile={}",
@@ -142,26 +135,24 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 userUpdateRequest.getNewUsername(),
                 userUpdateRequest.getNewEmail(),
                 userUpdateRequest.getNewPassword(),
-                (Objects.isNull(createdProfileImage)
-                        ? oldProfileId
-                        : createdProfileImage.getId()
-                )
+                createdProfileImage
         );
+
         User updatedUser = userDomainService.update(updatingUser);
 
-        if (Objects.nonNull(createdProfileImage) && Objects.nonNull(oldProfileId)) {
-            binaryContentDomainService.delete(oldProfileId);
+        if (Objects.nonNull(createdProfileImage) && Objects.nonNull(oldProfile)) {
+            binaryContentDomainService.delete(oldProfile.getId());
             log.debug(
                     "기존 프로필 삭제 완료: userId={}, oldProfileId={}",
                     userId,
-                    oldProfileId
+                    oldProfile.getId()
             );
         }
 
         log.info(
                 "User 수정 완료: userId={}, profileId={}",
                 updatedUser.getId(),
-                updatedUser.getProfileId()
+                Objects.isNull(updatedUser.getProfile()) ? null : updatedUser.getProfile().getId()
         );
 
         return toDto(updatedUser);
@@ -173,9 +164,9 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             UserStatusUpdateRequest request
     ) {
         log.info("User 업데이트 시작: userId={}", userId);
-
         userDomainService.findById(userId);
         UserStatus updatingUserStatus = userStatusDomainService.findByUserId(userId);
+
         updatingUserStatus.updateLastActiveAt(request.getNewLastActiveAt());
         UserStatus updatedUserStatus = userStatusDomainService.update(updatingUserStatus);
 
@@ -191,66 +182,29 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     @Override
     public void delete(UUID userId) {
         User user = userDomainService.findById(userId);
-        UserStatus userStatus = userStatusDomainService.findByUserId(userId);
-
-        UUID profileId = user.getProfileId();
-        BinaryContent profileImage = (Objects.nonNull(profileId))
-                ? binaryContentDomainService.findById(profileId)
-                : null;
+        BinaryContent profile = user.getProfile();
+        UUID userStatusId = user.getStatus().getId();
 
         log.info("User 삭제 시작: userId={}", userId);
 
-        userStatusDomainService.delete(userStatus.getId());
-        userDomainService.delete(userId);
-
-        if (Objects.nonNull(profileImage)) {
-            binaryContentDomainService.delete(profileImage.getId());
+        userDomainService.delete(userId);   // UserStatus 는 cascade 로 함께 삭제
+        if (Objects.nonNull(profile)) {
+            binaryContentDomainService.delete(profile.getId());
         }
 
         log.info(
                 "User 삭제 완료: userId={}, userStatusId={}, profileId={}",
                 userId,
-                userStatus.getId(),
-                profileId
+                userStatusId,
+                Objects.isNull(profile) ? null : profile.getId()
         );
     }
 
-
-    // 사용자와 그 사용자의 status까지 같이 반환
-    private List<UserDto> toUserDtoList(
-            List<User> users,
-            List<UserStatus> userStatuses
-    ) {
-        // { userId : UserStatus } map
-        Map<UUID, UserStatus> userStatusMap = new HashMap<>();
-        for (UserStatus userStatus : userStatuses) {
-            userStatusMap.put(userStatus.getUserId(), userStatus);
-        }
-
-        // construct UserDto
-        List<UserDto> userResponses = new ArrayList<>();
-        for (User user : users) {
-            UserStatus userStatus = userStatusMap.get(user.getId());
-            if (Objects.isNull(userStatus)) {
-                // 방어적 fail
-                log.warn(
-                        "UserStatus 누락됨: userId={}, isOnline=false 기본값으로 반환함",
-                        user.getId()
-                );
-            }
-
-            userResponses.add(toDto(user, userStatus));
-        }
-        return userResponses;
-    }
     private UserDto toDto(User user) {
-        return toDto(user, userStatusRepository.findByUserId(user.getId()).orElse(null));
-    }
+        BinaryContentDto profile = Objects.isNull(user.getProfile())
+                ? null
+                : BinaryContentDto.from(user.getProfile());
 
-    private UserDto toDto(User user, UserStatus status) {
-        BinaryContentDto profile = user.getProfileId() == null ? null
-                : binaryContentRepository.findById(user.getProfileId())
-                        .map(BinaryContentDto::from).orElse(null);
-        return UserDto.from(user, profile, status);
+        return UserDto.from(user, profile, user.getStatus());
     }
 }

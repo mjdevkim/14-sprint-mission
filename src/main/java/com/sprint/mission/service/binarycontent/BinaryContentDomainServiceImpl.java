@@ -57,6 +57,6 @@ public class BinaryContentDomainServiceImpl implements BinaryContentDomainServic
     @Override
     public void delete(UUID binaryContentId) {
         findById(binaryContentId);  // 없으면 BINARY_CONTENT_NOT_FOUND
-        binaryContentRepository.delete(binaryContentId);
+        binaryContentRepository.deleteById(binaryContentId);
     }
 }

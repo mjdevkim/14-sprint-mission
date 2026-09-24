@@ -91,6 +91,6 @@ public class UserDomainServiceImpl implements UserDomainService {
     @Override
     public void delete(UUID userId) {
         findById(userId);
-        userRepository.delete(userId);
+        userRepository.deleteById(userId);
     }
 }

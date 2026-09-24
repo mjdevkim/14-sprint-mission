@@ -23,8 +23,8 @@ public class ReadStatusDto {
     public static ReadStatusDto from(ReadStatus readStatus) {
         return new ReadStatusDto(
                 readStatus.getId(),
-                readStatus.getUserId(),
-                readStatus.getChannelId(),
+                readStatus.getUser().getId(),
+                readStatus.getChannel().getId(),
                 readStatus.getLastReadAt()
         );
     }

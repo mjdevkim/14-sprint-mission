@@ -24,6 +24,6 @@ public class MessageDto {
 
     public static MessageDto from(Message message, UserDto author, List<BinaryContentDto> attachments) {
         return new MessageDto(message.getId(), message.getCreatedAt(), message.getUpdatedAt(),
-                message.getContent(), message.getChannelId(), author, List.copyOf(attachments));
+                message.getContent(), message.getChannel().getId(), author, List.copyOf(attachments));
     }
 }

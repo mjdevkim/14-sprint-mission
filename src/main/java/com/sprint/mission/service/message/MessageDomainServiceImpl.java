@@ -51,16 +51,12 @@ public class MessageDomainServiceImpl implements MessageDomainService {
 
     @Override
     public List<Message> findAllByChannelId(UUID channelId) {   // Optional<List<Message>>로 바꾸기
-        return messageRepository.findAll().stream()
-                .filter(message ->
-                        Objects.equals(message.getChannelId(), channelId))
-                .toList();
-        //      .orElseThrow(); <- 나중에 추가하기
+        return messageRepository.findAllByChannelId(channelId);
     }
 
     @Override
     public Message findMostRecentByChannelId(UUID channelId) {
-        return messageRepository.findMostRecentByChannelId(channelId)
+        return messageRepository.findFirstByChannelIdOrderByCreatedAtDesc(channelId)
                 .orElse(null);
     }
 
@@ -73,15 +69,12 @@ public class MessageDomainServiceImpl implements MessageDomainService {
     @Override
     public void delete(UUID messageId) {
         findById(messageId);
-        messageRepository.delete(messageId);
+        messageRepository.deleteById(messageId);
     }
 
     @Override
     public void deleteAllByChannelId(UUID channelId) {
-        List<Message> messages = findAllByChannelId(channelId);
-
-        for (Message message : messages) {
-            messageRepository.delete(message.getId());
-        }
+        // 첨부파일까지 cascade 삭제
+        messageRepository.deleteAll(findAllByChannelId(channelId));
     }
 }

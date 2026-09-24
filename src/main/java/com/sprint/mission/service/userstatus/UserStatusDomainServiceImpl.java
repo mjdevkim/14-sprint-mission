@@ -27,10 +27,10 @@ public class UserStatusDomainServiceImpl implements UserStatusDomainService {
     @Override
     public UserStatus create(UserStatus userStatus) {
         // 이미 해당 id를 가진 user의 userStatus 객체가 존재함
-        if (userStatusRepository.findByUserId(userStatus.getUserId()).isPresent()) {
+        if (userStatusRepository.findByUserId(userStatus.getUser().getId()).isPresent()) {
             throw new DiscodeitException(
                     DiscodeitExceptionType.USER_STATUS_ALREADY_EXISTS,
-                    userStatus.getUserId()
+                    userStatus.getUser().getId()
             );
         }
 
@@ -81,6 +81,6 @@ public class UserStatusDomainServiceImpl implements UserStatusDomainService {
     @Override
     public void delete(UUID userStatusId) {
         findById(userStatusId);
-        userStatusRepository.delete(userStatusId);
+        userStatusRepository.deleteById(userStatusId);
     }
 }

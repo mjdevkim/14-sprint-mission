@@ -25,7 +25,7 @@ public class BinaryContentDto {
         return new BinaryContentDto(
                 binaryContent.getId(),
                 binaryContent.getFileName(),
-                binaryContent.getBytes().length,
+                binaryContent.getSize(),
                 binaryContent.getContentType()
         );
     }

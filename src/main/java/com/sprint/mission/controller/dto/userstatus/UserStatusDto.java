@@ -24,7 +24,7 @@ public class UserStatusDto {
     public static UserStatusDto from(UserStatus userStatus) {
         return new UserStatusDto(
                 userStatus.getId(),
-                userStatus.getUserId(),
+                userStatus.getUser().getId(),
                 userStatus.getLastActiveAt()
         );
     }

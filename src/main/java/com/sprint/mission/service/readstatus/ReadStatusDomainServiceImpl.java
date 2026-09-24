@@ -28,13 +28,13 @@ public class ReadStatusDomainServiceImpl implements ReadStatusDomainService {
     public ReadStatus create(ReadStatus readStatus) {
         // 같은 유저와 채널에 대한 객체가 있으면 예외 발생
         if (readStatusRepository.existsByUserIdAndChannelId(
-                readStatus.getUserId(),
-                readStatus.getChannelId()
+                readStatus.getUser().getId(),
+                readStatus.getChannel().getId()
         )) {
             throw new DiscodeitException(
                     DiscodeitExceptionType.READ_STATUS_ALREADY_EXISTS,
-                    readStatus.getUserId(),
-                    readStatus.getChannelId()
+                    readStatus.getUser().getId(),
+                    readStatus.getChannel().getId()
             );
         }
         readStatusRepository.save(readStatus);
@@ -114,16 +114,11 @@ public class ReadStatusDomainServiceImpl implements ReadStatusDomainService {
     @Override
     public void delete(UUID readStatusId) {
         findById(readStatusId);
-        readStatusRepository.delete(readStatusId);
+        readStatusRepository.deleteById(readStatusId);
     }
 
     @Override
     public void deleteAllByChannelId(UUID channelId) {
-        List<ReadStatus> readStatuses =
-                findAllByChannelId(channelId);
-
-        for (ReadStatus readStatus : readStatuses) {
-            readStatusRepository.delete(readStatus.getId());
-        }
+        readStatusRepository.deleteAll(findAllByChannelId(channelId));
     }
 }

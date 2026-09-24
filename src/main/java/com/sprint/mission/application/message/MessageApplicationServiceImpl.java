@@ -1,20 +1,19 @@
 package com.sprint.mission.application.message;
 
 import com.sprint.mission.application.user.UserApplicationService;
-import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
-import com.sprint.mission.repository.UserRepository;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
+import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ChannelType;
 import com.sprint.mission.domain.Message;
+import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
 import com.sprint.mission.multipart.MultipartFileConverter;
-import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
 import com.sprint.mission.service.channel.ChannelDomainService;
 import com.sprint.mission.service.message.MessageDomainService;
 import com.sprint.mission.service.readstatus.ReadStatusDomainService;
@@ -22,28 +21,28 @@ import com.sprint.mission.service.user.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @Validated
+@Transactional
 @RequiredArgsConstructor
 public class MessageApplicationServiceImpl implements MessageApplicationService {
-
     private final UserApplicationService userApplicationService;
-    private final UserRepository userRepository;
     private final MessageDomainService messageDomainService;
     private final UserDomainService userDomainService;
     private final ChannelDomainService channelDomainService;
-    private final BinaryContentDomainService binaryContentDomainService;
     private final ReadStatusDomainService readStatusDomainService;
     private final MultipartFileConverter multipartFileConverter;
 
-
-    private List<UUID> createAttachments(
+    private List<BinaryContent> createAttachments(
             List<MultipartFile> attachmentFiles
     ) {
         if (Objects.isNull(attachmentFiles) || attachmentFiles.isEmpty()) {
@@ -58,11 +57,8 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                         converted.getContentType(),
                         converted.getBytes()
                 ))
-                .map(binaryContentDomainService::create)
-                .map(BinaryContent::getId)
-                .toList();
+                .toList();  // 저장은 Message 의 cascade(PERSIST) 로 함께 처리된다
     }
-
 
     @Override
     public MessageDto create(
@@ -80,61 +76,55 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
                 numAttachments
         );
 
-        UUID senderId = userDomainService.findById(messageCreateRequest.getAuthorId()).getId();
+        User sender = userDomainService.findById(messageCreateRequest.getAuthorId());
         Channel channel = channelDomainService.findById(messageCreateRequest.getChannelId());
-        UUID channelId = channel.getId();
+
         // 공개 채널이거나 접근 가능한 비공개 채널
-        boolean senderCanAccess = channel.getChannelType() == ChannelType.PUBLIC
-                || readStatusDomainService.existsByUserIdAndChannelId(senderId, channelId);
+        boolean senderCanAccess = channel.getType() == ChannelType.PUBLIC
+                || readStatusDomainService.existsByUserIdAndChannelId(sender.getId(), channel.getId());
 
         if (!senderCanAccess) {
             log.warn(
                     "PRIVATE Channel Message 생성 거부: userId={}, channelId={}",
-                    senderId,
-                    channelId
+                    sender.getId(),
+                    channel.getId()
             );
             throw new DiscodeitException(
                     DiscodeitExceptionType.CHANNEL_ACCESS_DENIED,
-                    senderId,
-                    channelId
+                    sender.getId(),
+                    channel.getId()
             );
         }
 
-        List<UUID> attachmentIds = createAttachments(attachments);
-
-        if (Objects.nonNull(attachmentIds)) {
-            log.info(
-                    "Message 첨부파일 저장 완료: channelId={}, attachmentCount={}",
-                    channelId,
-                    attachmentIds.size()
-            );
-        }
+        List<BinaryContent> attachmentEntities = createAttachments(attachments);
 
         Message createdMessage = messageDomainService.create(Message.create(
                 messageCreateRequest.getContent(),
-                senderId,
-                channelId,
-                attachmentIds
+                sender,
+                channel,
+                attachmentEntities
         ));
 
         log.info(
                 "Message 생성 완료: messageId={}, senderId={}, channelId={}, attachmentCount={}",
                 createdMessage.getId(),
-                createdMessage.getSenderId(),
-                createdMessage.getChannelId(),
-                createdMessage.getAttachmentIds().size()
+                sender.getId(),
+                channel.getId(),
+                createdMessage.getAttachments().size()
         );
 
         return toDto(createdMessage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MessageDto findById(UUID messageId) {
         log.debug("Message 단건 조회: messageId={}", messageId);
         return toDto(messageDomainService.findById(messageId));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MessageDto> findAllByChannelId(UUID channelId) {
         channelDomainService.findById(channelId);
 
@@ -177,29 +167,29 @@ public class MessageApplicationServiceImpl implements MessageApplicationService 
     @Override
     public void delete(UUID messageId) {
         Message message = messageDomainService.findById(messageId);
-        List<UUID> attachmentIds = messageDomainService.findById(messageId).getAttachmentIds();
+        int attachmentCount = message.getAttachments().size();
 
         log.info(
                 "Message 삭제 시작: messageId={}, attachmentCount={}",
                 message.getId(),
-                attachmentIds.size()
+                attachmentCount
         );
 
-        messageDomainService.delete(messageId);
-
-        for (UUID attachmentId : attachmentIds) {
-            binaryContentDomainService.delete(attachmentId);
-        }
+        messageDomainService.delete(messageId);     // 첨부파일은 cascade 로 함께 삭제
 
         log.info("Message 및 첨부파일 삭제 완료: messageId={}", messageId);
     }
+
     private MessageDto toDto(Message message) {
         // A deleted author must not prevent reading the remaining message history.
-        UserDto author = userRepository.findById(message.getSenderId())
-                .map(user -> userApplicationService.findById(user.getId())).orElse(null);
-        List<BinaryContentDto> attachments = binaryContentDomainService
-                .findAllByIdIn(message.getAttachmentIds()).stream()
-                .map(BinaryContentDto::from).toList();
+        UserDto author = Objects.isNull(message.getAuthor())
+                ? null
+                : userApplicationService.findById(message.getAuthor().getId());
+
+        List<BinaryContentDto> attachments = message.getAttachments().stream()
+                .map(BinaryContentDto::from)
+                .toList();
+
         return MessageDto.from(message, author, attachments);
     }
 }

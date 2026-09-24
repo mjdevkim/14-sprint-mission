@@ -1,19 +1,17 @@
 package com.sprint.mission.application.channel;
 
 import com.sprint.mission.application.user.UserApplicationService;
-import com.sprint.mission.repository.UserRepository;
-import com.sprint.mission.domain.*;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
-import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelCreateRequest;
-import com.sprint.mission.domain.BinaryContent;
+import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ChannelType;
 import com.sprint.mission.domain.Message;
+import com.sprint.mission.domain.ReadStatus;
+import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
-import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
 import com.sprint.mission.service.channel.ChannelDomainService;
 import com.sprint.mission.service.message.MessageDomainService;
 import com.sprint.mission.service.readstatus.ReadStatusDomainService;
@@ -21,26 +19,27 @@ import com.sprint.mission.service.user.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @Validated
+@Transactional
 @RequiredArgsConstructor
 public class ChannelApplicationServiceImpl implements ChannelApplicationService {
-
     private final UserApplicationService userApplicationService;
-    private final UserRepository userRepository;
     private final ChannelDomainService channelDomainService;
     private final ReadStatusDomainService readStatusDomainService;
     private final MessageDomainService messageDomainService;
     private final UserDomainService userDomainService;
-    private final BinaryContentDomainService binaryContentDomainService;
-
 
     @Override
     public ChannelDto createPublic(PublicChannelCreateRequest request) {
@@ -56,37 +55,33 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
 
     @Override
     public ChannelDto createPrivate(PrivateChannelCreateRequest request) {
-        List<UUID> participantUserIds = request.getParticipantIds()
+        List<User> participants = request.getParticipantIds()
                 .stream()
                 .distinct()
+                .map(userDomainService::findById)
                 .toList();
 
-        participantUserIds.forEach(userDomainService::findById);
+        log.info("PRIVATE Channel 생성 시작: participantCount={}", participants.size());
 
-        log.info("PRIVATE Channel 생성 시작: participantCount={}", participantUserIds.size());
         Channel createdChannel = channelDomainService.create(Channel.createPrivate());
 
-        participantUserIds.forEach((userId) -> {
-            ReadStatus readStatus = ReadStatus.create(
-                    userId,
-                    createdChannel.getId()
-            );
-            readStatusDomainService.create(readStatus);
-        });
+        participants.forEach(user ->
+                readStatusDomainService.create(ReadStatus.create(user, createdChannel))
+        );
 
         log.debug(
                 "PRIVATE Channel ReadStatus 생성 완료: channelId={}, participantCount={}",
                 createdChannel.getId(),
-                participantUserIds.size()
+                participants.size()
         );
 
         return findById(createdChannel.getId());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ChannelDto findById(UUID channelId) {
         log.debug("Channel 단건 조회: channelId={}", channelId);
-
         Channel channel = channelDomainService.findById(channelId);
 
         Message mostRecentMessage = messageDomainService.findMostRecentByChannelId(channelId);
@@ -94,40 +89,39 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
                 ? mostRecentMessage.getCreatedAt()
                 : null;
 
-        List<UUID> participantUserIds = (channel.getChannelType() == ChannelType.PRIVATE)
+        List<UUID> participantUserIds = (channel.getType() == ChannelType.PRIVATE)
                 ? readStatusDomainService.findAllByChannelId(channelId)
                     .stream()
-                    .map(ReadStatus::getUserId)
+                    .map(readStatus -> readStatus.getUser().getId())
                     .toList()
                 : List.of();
 
         return new ChannelDto(
-                channel.getId(), channel.getChannelType(), channel.getName(), channel.getDescription(),
+                channel.getId(), channel.getType(), channel.getName(), channel.getDescription(),
                 participantUserIds.stream()
-                        .map(userRepository::findById)
-                        .flatMap(Optional::stream)
-                        .map(user -> userApplicationService.findById(user.getId()))
+                        .map(userApplicationService::findById)
                         .toList(),
                 mostRecentMessageAt
         );
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ChannelDto> findAllByUserId(UUID userId) {
         userDomainService.findById(userId);
 
         List<Channel> channels = channelDomainService.findAll();
 
         Set<UUID> accessibleChannelIds = readStatusDomainService.findAllByUserId(userId).stream()
-                .map(ReadStatus::getChannelId)
+                .map(readStatus -> readStatus.getChannel().getId())
                 .collect(Collectors.toSet());
 
         channels.stream()
-                .filter(channel -> channel.getChannelType() == ChannelType.PUBLIC)
+                .filter(channel -> channel.getType() == ChannelType.PUBLIC)
                 .map(Channel::getId)
                 .forEach(accessibleChannelIds::add);
 
-        List<ChannelDto> channelResponses = channelDomainService.findAll().stream()
+        List<ChannelDto> channelResponses = channels.stream()
                 .filter(channel -> accessibleChannelIds.contains(channel.getId()))
                 .map(channel -> this.findById(channel.getId()))
                 .toList();
@@ -148,9 +142,9 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
             PublicChannelUpdateRequest request
     ) {
         log.info("Channel 수정 시작: channelId={}", channelId);
-
         Channel updatingChannel = channelDomainService.findById(channelId);
-        if (updatingChannel.getChannelType().equals(ChannelType.PRIVATE)) {
+
+        if (updatingChannel.getType().equals(ChannelType.PRIVATE)) {
             log.warn("비공개 Channel 수정 불가: channelId={}", channelId);
             throw new DiscodeitException(DiscodeitExceptionType.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED, channelId);
         }
@@ -159,53 +153,29 @@ public class ChannelApplicationServiceImpl implements ChannelApplicationService 
         Channel updatedChannel = channelDomainService.update(updatingChannel);
 
         log.info("Channel 수정 완료: channelId={}", updatedChannel.getId());
-
         return findById(updatedChannel.getId());
     }
 
     @Override
     public void delete(UUID channelId) {
         channelDomainService.findById(channelId);
-        List<UUID> messageIds =
-                messageDomainService.findAllByChannelId(channelId)
-                        .stream()
-                        .map(Message::getId)
-                        .toList();
-        List<UUID> readStatusIds =
-                readStatusDomainService.findAllByChannelId(channelId)
-                        .stream()
-                        .map(ReadStatus::getId)
-                        .toList();
 
-        List<UUID> attachmentIds = messageIds.stream()
-                .filter(messageId ->
-                        Objects.nonNull(
-                                messageDomainService.findById(messageId)
-                                        .getAttachmentIds())
-                )
-                // List<Message<Attachment>> 을 flatMap으로
-                .flatMap(messageId ->
-                        messageDomainService.findById(messageId)
-                                .getAttachmentIds()
-                                .stream()
-                )
-                .map(binaryContentDomainService::findById)
-                .map(BinaryContent::getId)
-                .toList();
+        List<Message> messages = messageDomainService.findAllByChannelId(channelId);
+        int attachmentCount = messages.stream()
+                .mapToInt(message -> message.getAttachments().size())
+                .sum();
 
         log.info(
                 "Channel 삭제 시작: channelId={}, messageCount={}, attachmentCount={}",
                 channelId,
-                messageIds.size(),
-                attachmentIds.size()
+                messages.size(),
+                attachmentCount
         );
 
-        readStatusIds.forEach(readStatusDomainService::delete);
-        messageIds.forEach(messageDomainService::delete);
-        attachmentIds.forEach(binaryContentDomainService::delete);
+        readStatusDomainService.deleteAllByChannelId(channelId);
+        messageDomainService.deleteAllByChannelId(channelId);   // 첨부파일은 cascade 로 함께 삭제
         channelDomainService.delete(channelId);
 
         log.info("Channel 및 연관 데이터 삭제 완료: channelId={}", channelId);
     }
-
 }

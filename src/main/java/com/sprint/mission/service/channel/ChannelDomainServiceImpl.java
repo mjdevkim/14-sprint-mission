@@ -49,7 +49,7 @@ public class ChannelDomainServiceImpl implements ChannelDomainService {
     public Channel update(Channel updatingChannel) {
         Channel originalChannel = findById(updatingChannel.getId());
 
-        if (originalChannel.getChannelType() == ChannelType.PRIVATE) {
+        if (originalChannel.getType() == ChannelType.PRIVATE) {
             throw new DiscodeitException(
                     DiscodeitExceptionType.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED,
                     updatingChannel.getId()
@@ -62,6 +62,6 @@ public class ChannelDomainServiceImpl implements ChannelDomainService {
     @Override
     public void delete(UUID channelId) {
         findById(channelId);    // 없으면 CHANNEL_NOT_FOUND
-        channelRepository.delete(channelId);
+        channelRepository.deleteById(channelId);
     }
 }
