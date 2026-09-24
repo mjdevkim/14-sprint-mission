@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +18,7 @@ public interface MessageService {
             List<MultipartFile> attachment
     );
     MessageDto findById(@NotNull UUID messageId);
-    PageResponse<MessageDto> findAllByChannelId(@NotNull UUID channelId, int page);
+    PageResponse<MessageDto> findAllByChannelId(@NotNull UUID channelId, Instant cursor);
     MessageDto update(
             @NotNull UUID messageId,
             @NotNull @Valid MessageUpdateRequest messageUpdateRequest

@@ -4,10 +4,10 @@ import com.sprint.mission.domain.Message;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,7 +19,9 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findAllByChannelId(UUID channelId);
 
     @EntityGraph(attributePaths = {"author", "author.profile", "author.status"})
-    Slice<Message> findAllByChannelIdOrderByCreatedAtDesc(UUID channelId, Pageable pageable);
+    List<Message> findByChannelIdAndCreatedAtLessThanOrderByCreatedAtDesc(
+            UUID channelId, Instant cursor, Pageable pageable
+    );
 
     Optional<Message> findFirstByChannelIdOrderByCreatedAtDesc(UUID channelId);
 

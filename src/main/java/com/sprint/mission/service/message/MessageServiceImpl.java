@@ -22,13 +22,13 @@ import com.sprint.mission.repository.ReadStatusRepository;
 import com.sprint.mission.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -40,6 +40,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
     private static final int PAGE_SIZE = 50;
+    // Instant.MAX는 DB의 timestamp 컬럼이 표현 가능한 범위를 벗어나므로,
+    // "충분히 미래인 값"으로 대신 이 상수를 cursor 기본값(=첫 페이지)으로 사용한다.
+    private static final Instant MAX_INSTANT = Instant.parse("9999-12-31T23:59:59Z");
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
@@ -145,20 +148,33 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, int page) {
+    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, Instant cursor) {
         channelRepository.getChannel(channelId);
 
-        Slice<Message> messages = messageRepository.findAllByChannelIdOrderByCreatedAtDesc(
-                channelId, PageRequest.of(page, PAGE_SIZE)
+        // 커서 유효한지 검증 - 유효하지 않으면 기본값으로
+        Instant effectiveCursor = Objects.requireNonNullElse(cursor, MAX_INSTANT);
+
+        // messageRepository의 쿼리 메서드 사용해서 메세지 읽어오기
+        List<Message> fetchedMessages = messageRepository.findByChannelIdAndCreatedAtLessThanOrderByCreatedAtDesc(
+                channelId, effectiveCursor, Pageable.ofSize(PAGE_SIZE + 1)
         );
-        Slice<MessageDto> messageDtos = messages.map(messageMapper::toDto);
-        PageResponse<MessageDto> pageResponse = pageResponseMapper.fromSlice(messageDtos);
+
+        // 읽어온 메세지들을 MessageDto로 변환
+        List<MessageDto> fetchedDtos = fetchedMessages.stream()
+                .map(messageMapper::toDto)
+                .toList();
+
+        // 메세지 리스트를 PageResponse로 변환
+        PageResponse<MessageDto> pageResponse = pageResponseMapper.toCursorResponse(
+                fetchedDtos, PAGE_SIZE, MessageDto::getCreatedAt, null
+        );
 
         log.debug(
-                "Channel Message 목록 조회 완료: channelId={}, page={}, count={}",
+                "Channel Message 목록 조회 완료: channelId={}, cursor={}, count={}, hasNext={}",
                 channelId,
-                page,
-                pageResponse.getContent().size()
+                cursor,
+                pageResponse.getContent().size(),
+                pageResponse.isHasNext()
         );
 
         return pageResponse;

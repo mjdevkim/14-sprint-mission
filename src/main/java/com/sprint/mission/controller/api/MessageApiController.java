@@ -23,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -142,10 +143,10 @@ public class MessageApiController {
     public ResponseEntity<PageResponse<MessageDto>> findAllByChannelId(
             @Parameter(description = "조회할 Channel ID")
             @NotNull @RequestParam UUID channelId,
-            @Parameter(description = "조회할 페이지 번호 (0부터 시작)")
-            @RequestParam(defaultValue = "0") int page
+            @Parameter(description = "다음 페이지 커서 (첫 페이지는 생략)")
+            @RequestParam(required = false) Instant cursor
     ) {
-        PageResponse<MessageDto> channelMessagePage = messageService.findAllByChannelId(channelId, page);
+        PageResponse<MessageDto> channelMessagePage = messageService.findAllByChannelId(channelId, cursor);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(channelMessagePage);
