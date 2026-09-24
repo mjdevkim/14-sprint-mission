@@ -16,7 +16,7 @@ public abstract class AbstractMultipartFileConverter implements MultipartFileCon
             throw new DiscodeitException(MultipartFileExceptionType.FILE_IS_EMPTY);
         }
 
-        String fileName = generate(file);
+        String fileName = generate(file);   // 구체클래스마다 파일 이름 컨벤션 따로
 
         try {
             return new MultipartFileDto(

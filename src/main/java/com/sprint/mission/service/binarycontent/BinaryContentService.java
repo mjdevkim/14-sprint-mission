@@ -11,6 +11,5 @@ public interface BinaryContentService {
     BinaryContentDto create(@NotNull MultipartFile multipartFile);
     BinaryContentDto findById(@NotNull UUID binaryContentId);
     List<BinaryContentDto> findAllByIdIn(@NotNull List<UUID> binaryContentIds);
-    BinaryContentDownload download(@NotNull UUID binaryContentId);
     void delete(@NotNull UUID binaryContentId);
 }

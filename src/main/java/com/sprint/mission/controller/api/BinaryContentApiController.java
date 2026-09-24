@@ -1,5 +1,6 @@
 package com.sprint.mission.controller.api;
 
+import com.sprint.mission.storage.BinaryContentStorage;
 import com.sprint.mission.service.binarycontent.BinaryContentService;
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,18 +14,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.sprint.mission.service.binarycontent.BinaryContentDownload;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +31,7 @@ import java.util.UUID;
 public class BinaryContentApiController {
 
     private final BinaryContentService binaryContentService;
+    private final BinaryContentStorage binaryContentStorage;
 
     @Operation(summary = "첨부 파일 조회")
     @ApiResponses({
@@ -84,18 +81,16 @@ public class BinaryContentApiController {
     ) {
         return binaryContentService.findAllByIdIn(binaryContentIds);
     }
+
     @Operation(summary = "파일 다운로드")
     @ApiResponse(responseCode = "200", description = "파일 다운로드 성공",
             content = @Content(schema = @Schema(type = "string", format = "binary")))
     @GetMapping("/{binaryContentId}/download")
-    public ResponseEntity<byte[]> download(@PathVariable UUID binaryContentId) {
-        BinaryContentDownload file = binaryContentService.download(binaryContentId);
-        MediaType contentType = file.contentType() == null
-                ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(file.contentType());
-        return ResponseEntity.ok()
-                .contentType(contentType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
-                .body(file.bytes());
+    public ResponseEntity<?> download(
+            @Parameter(description = "다운로드할 첨부 파일 ID")
+            @NotNull @PathVariable UUID binaryContentId
+    ) {
+        BinaryContentDto binaryContentDto = binaryContentService.findById(binaryContentId);
+        return binaryContentStorage.download(binaryContentDto);
     }
 }

@@ -5,6 +5,7 @@ import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
 import com.sprint.mission.controller.dto.userstatus.UserStatusDto;
 import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequest;
+import com.sprint.mission.storage.BinaryContentStorage;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.User;
 import com.sprint.mission.domain.UserStatus;
@@ -36,6 +37,7 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final BinaryContentRepository binaryContentRepository;
+    private final BinaryContentStorage binaryContentStorage;
     private final UserStatusRepository userStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
     private final UserMapper userMapper;
@@ -83,13 +85,18 @@ public class UserServiceImpl implements UserService {
 
     private BinaryContent createBinaryContent(MultipartFile profileImageRequest) {
         MultipartFileDto converted = multipartFileConverter.convert(profileImageRequest);
-        BinaryContent binaryContent = BinaryContent.create(
+        BinaryContent binaryContent = BinaryContent.create( // 메타데이터만 저장
                 converted.getFileName(),
                 converted.getContentType(),
-                converted.getBytes()
+                converted.getBytes().length
         );
+        // binary content repository 저장
+        BinaryContent savedBinaryContent = binaryContentRepository.save(binaryContent);
 
-        return binaryContentRepository.save(binaryContent);
+        // binary content storage에 byte[] 저장
+        binaryContentStorage.put(savedBinaryContent.getId(), converted.getBytes());
+
+        return savedBinaryContent;
     }
 
     @Override

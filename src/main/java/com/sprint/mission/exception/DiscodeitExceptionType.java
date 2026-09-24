@@ -281,6 +281,20 @@ public enum DiscodeitExceptionType implements ExceptionType {
             "요청한 BinaryContent를 찾을 수 없습니다."
     ),
 
+    BINARY_CONTENT_STORAGE_WRITE_FAILED(
+            Level.ERROR,
+            HttpURLConnection.HTTP_INTERNAL_ERROR,
+            "[BIN_CONTENT] 파일 저장 실패. binaryContentId=%s",
+            "파일 저장에 실패했습니다."
+    ),
+
+    BINARY_CONTENT_STORAGE_READ_FAILED(
+            Level.ERROR,
+            HttpURLConnection.HTTP_INTERNAL_ERROR,
+            "[BIN_CONTENT] 파일 읽기 실패. binaryContentId=%s",
+            "파일 읽기에 실패했습니다."
+    ),
+
     UNKNOWN_ERROR(
             Level.ERROR,
             HttpURLConnection.HTTP_INTERNAL_ERROR,

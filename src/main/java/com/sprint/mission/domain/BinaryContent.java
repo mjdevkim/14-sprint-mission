@@ -24,21 +24,13 @@ public class BinaryContent extends BaseEntity {
     @Column(name = "content_type", nullable = false, length = 100)
     private String contentType;
 
-    @Column(name = "bytes", nullable = false)
-    private byte[] bytes;
-
-    private BinaryContent(String fileName, String contentType, byte[] bytes) {
+    private BinaryContent(String fileName, String contentType, long size) {
         this.fileName = fileName;
         this.contentType = contentType;
-        this.size = (long) bytes.length;
-        this.bytes = bytes;
+        this.size = size;
     }
 
-    public static BinaryContent create(String fileName, String contentType, byte[] fileBytes) {
-        return new BinaryContent(fileName, contentType, fileBytes);
-    }
-
-    public byte[] getBytes() {
-        return this.bytes.clone();
+    public static BinaryContent create(String fileName, String contentType, long size) {
+        return new BinaryContent(fileName, contentType, size);
     }
 }

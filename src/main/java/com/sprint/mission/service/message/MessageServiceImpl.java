@@ -3,6 +3,7 @@ package com.sprint.mission.service.message;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
+import com.sprint.mission.storage.BinaryContentStorage;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ChannelType;
@@ -12,6 +13,7 @@ import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
 import com.sprint.mission.mapper.MessageMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
+import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.repository.ChannelRepository;
 import com.sprint.mission.repository.MessageRepository;
 import com.sprint.mission.repository.ReadStatusRepository;
@@ -39,8 +41,12 @@ public class MessageServiceImpl implements MessageService {
     private final ReadStatusRepository readStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
     private final MessageMapper messageMapper;
+    private final BinaryContentStorage binaryContentStorage;
 
-    private List<BinaryContent> createAttachments(
+    // Message.attachments는 cascade(PERSIST)로 저장되기 때문에, 저장 전에는
+    // BinaryContent의 id를 알 수 없다. 그래서 bytes는 따로 들고 있다가
+    // Message가 저장되어 attachments에 id가 생긴 뒤에 순서대로 짝지어서 저장한다.
+    private List<MultipartFileDto> convertAttachments(
             List<MultipartFile> attachmentFiles
     ) {
         if (Objects.isNull(attachmentFiles) || attachmentFiles.isEmpty()) {
@@ -50,11 +56,6 @@ public class MessageServiceImpl implements MessageService {
         return attachmentFiles.stream()
                 .filter(Objects::nonNull)
                 .map(multipartFileConverter::convert)
-                .map(converted -> BinaryContent.create(
-                        converted.getFileName(),
-                        converted.getContentType(),
-                        converted.getBytes()
-                ))
                 .toList();
     }
 
@@ -94,7 +95,14 @@ public class MessageServiceImpl implements MessageService {
             );
         }
 
-        List<BinaryContent> attachmentEntities = createAttachments(attachments);
+        List<MultipartFileDto> convertedAttachments = convertAttachments(attachments);
+        List<BinaryContent> attachmentEntities = convertedAttachments.stream()
+                .map(converted -> BinaryContent.create(
+                        converted.getFileName(),
+                        converted.getContentType(),
+                        converted.getBytes().length
+                ))
+                .toList();
 
         Message createdMessage = messageRepository.save(Message.create(
                 messageCreateRequest.getContent(),
@@ -102,6 +110,13 @@ public class MessageServiceImpl implements MessageService {
                 channel,
                 attachmentEntities
         ));
+
+        // attachmentEntities는 Message의 cascade(PERSIST)로 이제 막 저장되어 id가 생겼다.
+        // 순서를 그대로 유지하는 리스트이므로 인덱스로 bytes와 다시 짝지을 수 있다.
+        List<BinaryContent> savedAttachments = createdMessage.getAttachments();
+        for (int i = 0; i < savedAttachments.size(); i++) {
+            binaryContentStorage.put(savedAttachments.get(i).getId(), convertedAttachments.get(i).getBytes());
+        }
 
         log.info(
                 "Message 생성 완료: messageId={}, senderId={}, channelId={}, attachmentCount={}",

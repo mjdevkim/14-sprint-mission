@@ -1,6 +1,7 @@
 package com.sprint.mission.service.binarycontent;
 
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
+import com.sprint.mission.storage.BinaryContentStorage;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.mapper.BinaryContentMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
@@ -23,6 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class BinaryContentServiceImpl implements BinaryContentService {
     private final BinaryContentRepository binaryContentRepository;
+    private final BinaryContentStorage binaryContentStorage;
     private final MultipartFileConverter multipartFileConverter;
     private final BinaryContentMapper binaryContentMapper;
 
@@ -33,16 +35,17 @@ public class BinaryContentServiceImpl implements BinaryContentService {
         BinaryContent binaryContent = BinaryContent.create(
                 sanitizedMultipartData.getFileName(),
                 sanitizedMultipartData.getContentType(),
-                sanitizedMultipartData.getBytes()
+                sanitizedMultipartData.getBytes().length
         );
 
         BinaryContent createdBinaryContent = binaryContentRepository.save(binaryContent);
+        binaryContentStorage.put(createdBinaryContent.getId(), sanitizedMultipartData.getBytes());
 
         log.info(
                 "BinaryContent 생성 완료: binaryContentId={}, fileName={}, size={}",
                 createdBinaryContent.getId(),
                 createdBinaryContent.getFileName(),
-                createdBinaryContent.getBytes().length
+                createdBinaryContent.getSize()
         );
 
         return binaryContentMapper.toDto(createdBinaryContent);
@@ -75,13 +78,6 @@ public class BinaryContentServiceImpl implements BinaryContentService {
         );
 
         return responses;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BinaryContentDownload download(UUID binaryContentId) {
-        BinaryContent content = binaryContentRepository.getBinaryContent(binaryContentId);
-        return new BinaryContentDownload(content.getFileName(), content.getContentType(), content.getBytes());
     }
 
     @Override

@@ -22,13 +22,13 @@ public class BinaryContentDto {
     String contentType;
     byte[] bytes;
 
-    public static BinaryContentDto from(BinaryContent binaryContent) {
+    public static BinaryContentDto from(BinaryContent binaryContent, byte[] bytes) {
         return new BinaryContentDto(
                 binaryContent.getId(),
                 binaryContent.getFileName(),
                 binaryContent.getSize(),
                 binaryContent.getContentType(),
-                binaryContent.getBytes()
+                bytes
         );
     }
 
