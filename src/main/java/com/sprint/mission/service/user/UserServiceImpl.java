@@ -1,6 +1,5 @@
 package com.sprint.mission.service.user;
 
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
@@ -11,6 +10,8 @@ import com.sprint.mission.domain.User;
 import com.sprint.mission.domain.UserStatus;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
+import com.sprint.mission.mapper.UserMapper;
+import com.sprint.mission.mapper.UserStatusMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.repository.BinaryContentRepository;
@@ -37,6 +38,8 @@ public class UserServiceImpl implements UserService {
     private final BinaryContentRepository binaryContentRepository;
     private final UserStatusRepository userStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
+    private final UserMapper userMapper;
+    private final UserStatusMapper userStatusMapper;
 
     @Override
     public UserDto create(
@@ -75,7 +78,7 @@ public class UserServiceImpl implements UserService {
                 Objects.isNull(createdUser.getProfile()) ? null : createdUser.getProfile().getId()
         );
 
-        return toDto(createdUser);
+        return userMapper.toDto(createdUser);
     }
 
     private BinaryContent createBinaryContent(MultipartFile profileImageRequest) {
@@ -95,14 +98,14 @@ public class UserServiceImpl implements UserService {
         log.debug("User 단일 조회: userId={}", userId);
         User user = userRepository.getUser(userId);
 
-        return toDto(user);
+        return userMapper.toDto(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> findAll() {
         List<UserDto> userResponses = userRepository.findAll().stream()
-                .map(this::toDto)
+                .map(userMapper::toDto)
                 .toList();
 
         log.debug("User 다건 조회: size={}", userResponses.size());
@@ -165,7 +168,7 @@ public class UserServiceImpl implements UserService {
                 Objects.isNull(updatedUser.getProfile()) ? null : updatedUser.getProfile().getId()
         );
 
-        return toDto(updatedUser);
+        return userMapper.toDto(updatedUser);
     }
 
     @Override
@@ -186,7 +189,7 @@ public class UserServiceImpl implements UserService {
                 updatedUserStatus.getLastActiveAt()
         );
 
-        return UserStatusDto.from(updatedUserStatus);
+        return userStatusMapper.toDto(updatedUserStatus);
     }
 
     @Override
@@ -231,13 +234,5 @@ public class UserServiceImpl implements UserService {
         if (emailChanged && userRepository.existsByEmail(newEmail)) {
             throw new DiscodeitException(DiscodeitExceptionType.USER_EMAIL_EXISTS);
         }
-    }
-
-    private UserDto toDto(User user) {
-        BinaryContentDto profile = Objects.isNull(user.getProfile())
-                ? null
-                : BinaryContentDto.from(user.getProfile());
-
-        return UserDto.from(user, profile, user.getStatus());
     }
 }

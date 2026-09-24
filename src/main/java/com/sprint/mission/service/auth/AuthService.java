@@ -1,11 +1,11 @@
 package com.sprint.mission.service.auth;
 
 import com.sprint.mission.controller.dto.auth.LoginRequest;
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
+import com.sprint.mission.mapper.UserMapper;
 import com.sprint.mission.repository.UserRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.Objects;
-
 @Slf4j
 @Service
 @Validated
@@ -24,6 +22,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     public UserDto login(
             @NotNull @Valid LoginRequest loginRequest
@@ -37,14 +36,6 @@ public class AuthService {
 
         log.info("로그인 완료: username={}", user.getUsername());
 
-        return toUserDto(user);
-    }
-
-    private UserDto toUserDto(User user) {
-        BinaryContentDto profile = Objects.isNull(user.getProfile())
-                ? null
-                : BinaryContentDto.from(user.getProfile());
-
-        return UserDto.from(user, profile, user.getStatus());
+        return userMapper.toDto(user);
     }
 }

@@ -2,6 +2,7 @@ package com.sprint.mission.service.binarycontent;
 
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.domain.BinaryContent;
+import com.sprint.mission.mapper.BinaryContentMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.repository.BinaryContentRepository;
@@ -13,7 +14,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -24,6 +24,7 @@ import java.util.UUID;
 public class BinaryContentServiceImpl implements BinaryContentService {
     private final BinaryContentRepository binaryContentRepository;
     private final MultipartFileConverter multipartFileConverter;
+    private final BinaryContentMapper binaryContentMapper;
 
     @Override
     public BinaryContentDto create(MultipartFile multipartFile) {
@@ -44,7 +45,7 @@ public class BinaryContentServiceImpl implements BinaryContentService {
                 createdBinaryContent.getBytes().length
         );
 
-        return BinaryContentDto.from(createdBinaryContent);
+        return binaryContentMapper.toDto(createdBinaryContent);
     }
 
     @Override
@@ -55,7 +56,7 @@ public class BinaryContentServiceImpl implements BinaryContentService {
                 "BinaryContent 단건 조회: binaryContentId={}",
                 binaryContentId
         );
-        return BinaryContentDto.from(binaryContent);
+        return binaryContentMapper.toDto(binaryContent);
     }
 
     @Override
@@ -64,7 +65,7 @@ public class BinaryContentServiceImpl implements BinaryContentService {
         List<BinaryContentDto> responses =
                 binaryContentRepository.findAllByIdIn(binaryContentIds)
                         .stream()
-                        .map(BinaryContentDto::from)
+                        .map(binaryContentMapper::toDto)
                         .toList();
 
         log.debug(

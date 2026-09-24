@@ -1,11 +1,9 @@
 package com.sprint.mission.service.channel;
 
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelUpdateRequest;
-import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ChannelType;
 import com.sprint.mission.domain.Message;
@@ -13,6 +11,7 @@ import com.sprint.mission.domain.ReadStatus;
 import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
+import com.sprint.mission.mapper.ChannelMapper;
 import com.sprint.mission.repository.ChannelRepository;
 import com.sprint.mission.repository.MessageRepository;
 import com.sprint.mission.repository.ReadStatusRepository;
@@ -23,9 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,6 +37,7 @@ public class ChannelServiceImpl implements ChannelService {
     private final UserRepository userRepository;
     private final ReadStatusRepository readStatusRepository;
     private final MessageRepository messageRepository;
+    private final ChannelMapper channelMapper;
 
     @Override
     public ChannelDto createPublic(PublicChannelCreateRequest request) {
@@ -84,25 +82,7 @@ public class ChannelServiceImpl implements ChannelService {
         log.debug("Channel 단건 조회: channelId={}", channelId);
         Channel channel = channelRepository.getChannel(channelId);
 
-        Message mostRecentMessage = messageRepository
-                .findFirstByChannelIdOrderByCreatedAtDesc(channelId)
-                .orElse(null);
-        Instant mostRecentMessageAt = Objects.nonNull(mostRecentMessage)
-                ? mostRecentMessage.getCreatedAt()
-                : null;
-
-        List<UserDto> participants = (channel.getType() == ChannelType.PRIVATE)
-                ? readStatusRepository.findAllByChannelId(channelId)
-                    .stream()
-                    .map(readStatus -> toUserDto(readStatus.getUser()))
-                    .toList()
-                : List.of();
-
-        return new ChannelDto(
-                channel.getId(), channel.getType(), channel.getName(), channel.getDescription(),
-                participants,
-                mostRecentMessageAt
-        );
+        return channelMapper.toDto(channel);
     }
 
     @Override
@@ -177,13 +157,5 @@ public class ChannelServiceImpl implements ChannelService {
         channelRepository.deleteById(channelId);
 
         log.info("Channel 및 연관 데이터 삭제 완료: channelId={}", channelId);
-    }
-
-    private UserDto toUserDto(User user) {
-        BinaryContentDto profile = Objects.isNull(user.getProfile())
-                ? null
-                : BinaryContentDto.from(user.getProfile());
-
-        return UserDto.from(user, profile, user.getStatus());
     }
 }

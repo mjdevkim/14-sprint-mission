@@ -6,6 +6,7 @@ import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ReadStatus;
 import com.sprint.mission.domain.User;
+import com.sprint.mission.mapper.ReadStatusMapper;
 import com.sprint.mission.repository.ChannelRepository;
 import com.sprint.mission.repository.ReadStatusRepository;
 import com.sprint.mission.repository.UserRepository;
@@ -27,6 +28,7 @@ public class ReadStatusServiceImpl implements ReadStatusService {
     private final ReadStatusRepository readStatusRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
+    private final ReadStatusMapper readStatusMapper;
 
     @Override
     public ReadStatusDto create(ReadStatusCreateRequest request) {
@@ -40,7 +42,7 @@ public class ReadStatusServiceImpl implements ReadStatusService {
         );
         ReadStatus createdReadStatus = readStatusRepository.createReadStatus(readStatus);
 
-        return ReadStatusDto.from(createdReadStatus);
+        return readStatusMapper.toDto(createdReadStatus);
     }
 
     @Override
@@ -51,7 +53,7 @@ public class ReadStatusServiceImpl implements ReadStatusService {
         List<ReadStatusDto> responses =
                 readStatusRepository.findAllByUserId(userId)
                         .stream()
-                        .map(ReadStatusDto::from)
+                        .map(readStatusMapper::toDto)
                         .toList();
 
         log.info("User ReadStatus 목록 조회 완료: userId={}, count={}", userId, responses.size());
@@ -76,6 +78,6 @@ public class ReadStatusServiceImpl implements ReadStatusService {
                 updatedReadStatus.getLastReadAt()
         );
 
-        return ReadStatusDto.from(updatedReadStatus);
+        return readStatusMapper.toDto(updatedReadStatus);
     }
 }

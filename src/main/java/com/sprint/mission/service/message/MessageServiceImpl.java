@@ -1,10 +1,8 @@
 package com.sprint.mission.service.message;
 
-import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
-import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.Channel;
 import com.sprint.mission.domain.ChannelType;
@@ -12,6 +10,7 @@ import com.sprint.mission.domain.Message;
 import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
+import com.sprint.mission.mapper.MessageMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.repository.ChannelRepository;
 import com.sprint.mission.repository.MessageRepository;
@@ -39,6 +38,7 @@ public class MessageServiceImpl implements MessageService {
     private final ChannelRepository channelRepository;
     private final ReadStatusRepository readStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
+    private final MessageMapper messageMapper;
 
     private List<BinaryContent> createAttachments(
             List<MultipartFile> attachmentFiles
@@ -111,14 +111,14 @@ public class MessageServiceImpl implements MessageService {
                 createdMessage.getAttachments().size()
         );
 
-        return toDto(createdMessage);
+        return messageMapper.toDto(createdMessage);
     }
 
     @Override
     @Transactional(readOnly = true)
     public MessageDto findById(UUID messageId) {
         log.debug("Message 단건 조회: messageId={}", messageId);
-        return toDto(messageRepository.getMessage(messageId));
+        return messageMapper.toDto(messageRepository.getMessage(messageId));
     }
 
     @Override
@@ -128,7 +128,7 @@ public class MessageServiceImpl implements MessageService {
 
         List<MessageDto> messageResponses = messageRepository.findAllByChannelId(channelId)
                 .stream()
-                .map(this::toDto)
+                .map(messageMapper::toDto)
                 .toList();
 
         log.debug(
@@ -159,7 +159,7 @@ public class MessageServiceImpl implements MessageService {
                 updatedMessage.getId()
         );
 
-        return toDto(updatedMessage);
+        return messageMapper.toDto(updatedMessage);
     }
 
     @Override
@@ -176,25 +176,5 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.deleteById(messageId);
 
         log.info("Message 및 첨부파일 삭제 완료: messageId={}", messageId);
-    }
-
-    private MessageDto toDto(Message message) {
-        UserDto author = Objects.isNull(message.getAuthor())
-                ? null
-                : toUserDto(message.getAuthor());
-
-        List<BinaryContentDto> attachments = message.getAttachments().stream()
-                .map(BinaryContentDto::from)
-                .toList();
-
-        return MessageDto.from(message, author, attachments);
-    }
-
-    private UserDto toUserDto(User user) {
-        BinaryContentDto profile = Objects.isNull(user.getProfile())
-                ? null
-                : BinaryContentDto.from(user.getProfile());
-
-        return UserDto.from(user, profile, user.getStatus());
     }
 }
