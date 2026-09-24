@@ -20,13 +20,19 @@ public class BinaryContentDto {
     String fileName;
     long size;
     String contentType;
+    byte[] bytes;
 
     public static BinaryContentDto from(BinaryContent binaryContent) {
         return new BinaryContentDto(
                 binaryContent.getId(),
                 binaryContent.getFileName(),
                 binaryContent.getSize(),
-                binaryContent.getContentType()
+                binaryContent.getContentType(),
+                binaryContent.getBytes()
         );
+    }
+
+    public byte[] getBytes() {
+        return bytes.clone();
     }
 }
