@@ -4,6 +4,7 @@ import com.sprint.mission.domain.base.BaseUpdatableEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -34,6 +35,9 @@ public class Message extends BaseUpdatableEntity {
         // DB에서 부모가 지워져도 자식은 살아있다 - fk 컬럼만 null로 바꿈
     private User author;
 
+    @BatchSize(size = 100)   // attachments는 LAZY 컬렉션(@OneToMany 기본값)이라 메시지 목록을 순회하며
+                              // 접근하면 메시지 수만큼 쿼리가 따로 나간다(N+1). 배치사이즈를 걸면
+                              // "WHERE message_id IN (?, ?, ...)" 한 번으로 최대 100건씩 묶어서 가져온다.
     @OneToMany(cascade = {      // Message 1 : BinaryContent N
             CascadeType.PERSIST,    // "Message 저장을 BinaryContent에 전파한다"
             CascadeType.REMOVE      // "Message 삭제를 BinaryContent에 전파한다"

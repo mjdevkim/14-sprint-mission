@@ -1,14 +1,14 @@
-package com.sprint.mission.application.readstatus;
+package com.sprint.mission.service.readstatus;
 
-import com.sprint.mission.domain.Channel;
-import com.sprint.mission.domain.ReadStatus;
-import com.sprint.mission.domain.User;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusCreateRequest;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
-import com.sprint.mission.service.channel.ChannelDomainService;
-import com.sprint.mission.service.readstatus.ReadStatusDomainService;
-import com.sprint.mission.service.user.UserDomainService;
+import com.sprint.mission.domain.Channel;
+import com.sprint.mission.domain.ReadStatus;
+import com.sprint.mission.domain.User;
+import com.sprint.mission.repository.ChannelRepository;
+import com.sprint.mission.repository.ReadStatusRepository;
+import com.sprint.mission.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,33 +23,33 @@ import java.util.UUID;
 @Validated
 @Transactional
 @RequiredArgsConstructor
-public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationService {
-
-    private final ReadStatusDomainService readStatusDomainService;
-    private final UserDomainService userDomainService;
-    private final ChannelDomainService channelDomainService;
+public class ReadStatusServiceImpl implements ReadStatusService {
+    private final ReadStatusRepository readStatusRepository;
+    private final UserRepository userRepository;
+    private final ChannelRepository channelRepository;
 
     @Override
     public ReadStatusDto create(ReadStatusCreateRequest request) {
-        User user = userDomainService.findById(request.getUserId());
-        Channel channel = channelDomainService.findById(request.getChannelId());
+        User user = userRepository.getUser(request.getUserId());
+        Channel channel = channelRepository.getChannel(request.getChannelId());
 
         ReadStatus readStatus = ReadStatus.create(
                 user,
                 channel,
                 request.getLastReadAt()
         );
-        ReadStatus createdReadStatus = readStatusDomainService.create(readStatus);
+        ReadStatus createdReadStatus = readStatusRepository.createReadStatus(readStatus);
 
         return ReadStatusDto.from(createdReadStatus);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ReadStatusDto> findAllByUserId(UUID userId) {
-        userDomainService.findById(userId);
+        userRepository.getUser(userId);
 
         List<ReadStatusDto> responses =
-                readStatusDomainService.findAllByUserId(userId)
+                readStatusRepository.findAllByUserId(userId)
                         .stream()
                         .map(ReadStatusDto::from)
                         .toList();
@@ -64,9 +64,9 @@ public class ReadStatusApplicationServiceImpl implements ReadStatusApplicationSe
             UUID readStatusId,
             ReadStatusUpdateRequest request
     ) {
-        ReadStatus updatingReadStatus = readStatusDomainService.findById(readStatusId);
+        ReadStatus updatingReadStatus = readStatusRepository.getReadStatus(readStatusId);
         updatingReadStatus.updateLastReadAt(request.getNewLastReadAt());
-        ReadStatus updatedReadStatus = readStatusDomainService.update(updatingReadStatus);
+        ReadStatus updatedReadStatus = updatingReadStatus;
 
         log.info(
                 "ReadStatus 읽음 시간 갱신: readStatusId={}, userId={}, channelId={}, lastReadAt={}",

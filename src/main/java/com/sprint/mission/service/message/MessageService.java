@@ -1,4 +1,4 @@
-package com.sprint.mission.application.message;
+package com.sprint.mission.service.message;
 
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
-public interface MessageApplicationService {
+public interface MessageService {
     MessageDto create(
             @NotNull @Valid MessageCreateRequest messageCreateRequest,
             List<MultipartFile> attachment

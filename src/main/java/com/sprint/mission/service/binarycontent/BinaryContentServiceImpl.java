@@ -1,26 +1,28 @@
-package com.sprint.mission.application.binarycontent;
+package com.sprint.mission.service.binarycontent;
 
-import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
+import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
-import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
+import com.sprint.mission.repository.BinaryContentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
 @Service
 @Validated
+@Transactional
 @RequiredArgsConstructor
-public class BinaryContentApplicationServiceImpl implements BinaryContentApplicationService {
-
-    private final BinaryContentDomainService binaryContentDomainService;
+public class BinaryContentServiceImpl implements BinaryContentService {
+    private final BinaryContentRepository binaryContentRepository;
     private final MultipartFileConverter multipartFileConverter;
 
     @Override
@@ -33,7 +35,7 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
                 sanitizedMultipartData.getBytes()
         );
 
-        BinaryContent createdBinaryContent = binaryContentDomainService.create(binaryContent);
+        BinaryContent createdBinaryContent = binaryContentRepository.save(binaryContent);
 
         log.info(
                 "BinaryContent 생성 완료: binaryContentId={}, fileName={}, size={}",
@@ -46,8 +48,9 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BinaryContentDto findById(UUID binaryContentId) {
-        BinaryContent binaryContent = binaryContentDomainService.findById(binaryContentId);
+        BinaryContent binaryContent = binaryContentRepository.getBinaryContent(binaryContentId);
         log.debug(
                 "BinaryContent 단건 조회: binaryContentId={}",
                 binaryContentId
@@ -56,9 +59,10 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BinaryContentDto> findAllByIdIn(List<UUID> binaryContentIds) {
         List<BinaryContentDto> responses =
-                binaryContentDomainService.findAllByIdIn(binaryContentIds)
+                binaryContentRepository.findAllByIdIn(binaryContentIds)
                         .stream()
                         .map(BinaryContentDto::from)
                         .toList();
@@ -73,8 +77,9 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BinaryContentDownload download(UUID binaryContentId) {
-        BinaryContent content = binaryContentDomainService.findById(binaryContentId);
+        BinaryContent content = binaryContentRepository.getBinaryContent(binaryContentId);
         return new BinaryContentDownload(content.getFileName(), content.getContentType(), content.getBytes());
     }
 
@@ -85,7 +90,8 @@ public class BinaryContentApplicationServiceImpl implements BinaryContentApplica
                 binaryContentId
         );
 
-        binaryContentDomainService.delete(binaryContentId);
+        binaryContentRepository.getBinaryContent(binaryContentId);
+        binaryContentRepository.deleteById(binaryContentId);
 
         log.info(
                 "BinaryContent 삭제 완료: binaryContentId={}",

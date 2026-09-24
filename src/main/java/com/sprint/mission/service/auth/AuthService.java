@@ -1,42 +1,34 @@
-package com.sprint.mission.application.auth;
+package com.sprint.mission.service.auth;
 
-import com.sprint.mission.domain.User;
-import com.sprint.mission.application.user.UserApplicationService;
 import com.sprint.mission.controller.dto.auth.LoginRequest;
+import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.user.UserDto;
+import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
 import com.sprint.mission.repository.UserRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+
+import java.util.Objects;
 
 @Slf4j
 @Service
 @Validated
-public class AuthApplicationService {
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class AuthService {
     private final UserRepository userRepository;
-    private final UserApplicationService userApplicationService;
-
-    public AuthApplicationService(
-            UserRepository userRepository,
-            UserApplicationService userApplicationService
-    ) {
-        this.userRepository = userRepository;
-        this.userApplicationService = userApplicationService;
-    }
-
 
     public UserDto login(
             @NotNull @Valid LoginRequest loginRequest
     ) {
-        User user = userRepository.findByUsername(loginRequest.getUsername())    // username은 고유하다
-                .orElseThrow(() -> new DiscodeitException(
-                        DiscodeitExceptionType.LOGIN_USER_NOT_FOUND,
-                        loginRequest.getUsername()
-                ));
+        User user = userRepository.getUserByUsername(loginRequest.getUsername());
 
         if (!user.matchesPassword(loginRequest.getPassword())) {
             log.error("로그인 실패. username={}", loginRequest.getUsername());
@@ -45,6 +37,14 @@ public class AuthApplicationService {
 
         log.info("로그인 완료: username={}", user.getUsername());
 
-        return userApplicationService.findById(user.getId());
+        return toUserDto(user);
+    }
+
+    private UserDto toUserDto(User user) {
+        BinaryContentDto profile = Objects.isNull(user.getProfile())
+                ? null
+                : BinaryContentDto.from(user.getProfile());
+
+        return UserDto.from(user, profile, user.getStatus());
     }
 }

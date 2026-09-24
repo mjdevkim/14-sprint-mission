@@ -34,6 +34,8 @@ public class User extends BaseUpdatableEntity {
 
     @OneToOne(
             mappedBy = "user",  // user status가 user fk를 가진다 (user status가 주인)
+            fetch = FetchType.LAZY,   // 명시 안 하면 OneToOne 기본값인 EAGER로 동작해서,
+                                      // mappedBy 쪽이라 조인도 안 되고 User 하나당 조회 쿼리가 매번 따로 나감
             cascade = CascadeType.ALL,  // 부모에게 실행되는 걸 자식에게 다 전파
             orphanRemoval = true    // orphan 자동 삭제
     )

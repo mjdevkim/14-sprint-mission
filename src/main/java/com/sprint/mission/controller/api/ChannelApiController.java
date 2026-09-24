@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.channel.ChannelApplicationService;
+import com.sprint.mission.service.channel.ChannelService;
 import com.sprint.mission.controller.dto.channel.ChannelDto;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
 import com.sprint.mission.controller.dto.channel.PublicChannelCreateRequest;
@@ -37,7 +37,7 @@ import java.util.UUID;
  */
 public class ChannelApiController {
 
-    private final ChannelApplicationService channelApplicationService;
+    private final ChannelService channelService;
 
     @Operation(summary = "Public Channel 생성")
     @ApiResponse(
@@ -52,7 +52,7 @@ public class ChannelApiController {
     public ResponseEntity<ChannelDto> create(
             @Valid @RequestBody PublicChannelCreateRequest request
     ) {
-        ChannelDto createdChannel = channelApplicationService.createPublic(request);
+        ChannelDto createdChannel = channelService.createPublic(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdChannel);
@@ -71,7 +71,7 @@ public class ChannelApiController {
     public ResponseEntity<ChannelDto> create(
             @Valid @RequestBody PrivateChannelCreateRequest request
     ) {
-        ChannelDto createdChannel = channelApplicationService.createPrivate(request);
+        ChannelDto createdChannel = channelService.createPrivate(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdChannel);
@@ -110,7 +110,7 @@ public class ChannelApiController {
             @NotNull @PathVariable UUID channelId,
             @Valid @RequestBody PublicChannelUpdateRequest request
     ) {
-        ChannelDto updatedChannel = channelApplicationService.update(channelId, request);
+        ChannelDto updatedChannel = channelService.update(channelId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedChannel);
@@ -136,7 +136,7 @@ public class ChannelApiController {
             @Parameter(description = "삭제할 Channel ID")
             @NotNull @PathVariable UUID channelId
     ) {
-        channelApplicationService.delete(channelId);
+        channelService.delete(channelId);
         return ResponseEntity
                 .noContent()
                 .build();
@@ -158,7 +158,7 @@ public class ChannelApiController {
             @Parameter(description = "조회할 User ID")
             @NotNull @RequestParam UUID userId
     ) {
-        List<ChannelDto> channels = channelApplicationService.findAllByUserId(userId);
+        List<ChannelDto> channels = channelService.findAllByUserId(userId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(channels);

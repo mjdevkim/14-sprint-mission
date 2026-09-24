@@ -1,4 +1,4 @@
-package com.sprint.mission.application.channel;
+package com.sprint.mission.service.channel;
 
 import com.sprint.mission.controller.dto.channel.ChannelDto;
 import com.sprint.mission.controller.dto.channel.PrivateChannelCreateRequest;
@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public interface ChannelApplicationService {
+public interface ChannelService {
     ChannelDto createPublic(@NotNull @Valid PublicChannelCreateRequest publicChannelCreateRequest);
     ChannelDto createPrivate(@NotNull @Valid PrivateChannelCreateRequest privateChannelCreateRequest);
     ChannelDto findById(@NotNull UUID channelId);

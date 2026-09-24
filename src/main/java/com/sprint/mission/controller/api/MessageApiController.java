@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.message.MessageApplicationService;
+import com.sprint.mission.service.message.MessageService;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
@@ -38,7 +38,7 @@ import java.util.UUID;
 @Validated
 public class MessageApiController {
 
-    private final MessageApplicationService messageApplicationService;
+    private final MessageService messageService;
 
     @Operation(summary = "Message 생성")
     @ApiResponses({
@@ -67,7 +67,7 @@ public class MessageApiController {
             @Parameter(description = "Message 첨부 파일들")
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments
     ) {
-        MessageDto createdMessage = messageApplicationService.create(request, attachments);
+        MessageDto createdMessage = messageService.create(request, attachments);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdMessage);
@@ -98,7 +98,7 @@ public class MessageApiController {
             @NotNull @PathVariable UUID messageId,
             @Valid @RequestBody MessageUpdateRequest request
     ) {
-        MessageDto updatedMessage = messageApplicationService.update(messageId, request);
+        MessageDto updatedMessage = messageService.update(messageId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedMessage);
@@ -124,7 +124,7 @@ public class MessageApiController {
             @Parameter(description = "삭제할 Message ID")
             @NotNull @PathVariable UUID messageId
     ) {
-        messageApplicationService.delete(messageId);
+        messageService.delete(messageId);
         return ResponseEntity
                 .noContent()
                 .build();
@@ -146,7 +146,7 @@ public class MessageApiController {
             @Parameter(description = "조회할 Channel ID")
             @NotNull @RequestParam UUID channelId
     ) {
-        List<MessageDto> channelMessageList = messageApplicationService.findAllByChannelId(channelId);
+        List<MessageDto> channelMessageList = messageService.findAllByChannelId(channelId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(channelMessageList);

@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.binarycontent.BinaryContentApplicationService;
+import com.sprint.mission.service.binarycontent.BinaryContentService;
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.sprint.mission.application.binarycontent.BinaryContentDownload;
+import com.sprint.mission.service.binarycontent.BinaryContentDownload;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,7 +34,7 @@ import java.util.UUID;
 @Tag(name = "BinaryContent", description = "첨부 파일 API")
 public class BinaryContentApiController {
 
-    private final BinaryContentApplicationService binaryContentApplicationService;
+    private final BinaryContentService binaryContentService;
 
     @Operation(summary = "첨부 파일 조회")
     @ApiResponses({
@@ -62,7 +62,7 @@ public class BinaryContentApiController {
             @Parameter(description = "조회할 첨부 파일 ID")
             @NotNull @PathVariable UUID binaryContentId
     ) {
-        return binaryContentApplicationService.findById(binaryContentId);
+        return binaryContentService.findById(binaryContentId);
     }
 
     // Binary content id의 list를 주면 그 id를 가진 binary content id들을 반환한다
@@ -82,14 +82,14 @@ public class BinaryContentApiController {
             @Parameter(description = "조회할 첨부 파일 ID 목록")
             @RequestParam List<UUID> binaryContentIds
     ) {
-        return binaryContentApplicationService.findAllByIdIn(binaryContentIds);
+        return binaryContentService.findAllByIdIn(binaryContentIds);
     }
     @Operation(summary = "파일 다운로드")
     @ApiResponse(responseCode = "200", description = "파일 다운로드 성공",
             content = @Content(schema = @Schema(type = "string", format = "binary")))
     @GetMapping("/{binaryContentId}/download")
     public ResponseEntity<byte[]> download(@PathVariable UUID binaryContentId) {
-        BinaryContentDownload file = binaryContentApplicationService.download(binaryContentId);
+        BinaryContentDownload file = binaryContentService.download(binaryContentId);
         MediaType contentType = file.contentType() == null
                 ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(file.contentType());
         return ResponseEntity.ok()

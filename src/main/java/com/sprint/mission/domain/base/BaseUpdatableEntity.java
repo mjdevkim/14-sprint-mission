@@ -13,7 +13,7 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@MappedSuperclass   // 이 어노테이션이 없으면 updatedAt이 컬럼으로 매핑되지 않는다
+@MappedSuperclass
 public abstract class BaseUpdatableEntity extends BaseEntity {
 
     @LastModifiedDate

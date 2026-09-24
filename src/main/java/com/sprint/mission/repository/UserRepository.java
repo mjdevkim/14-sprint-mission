@@ -1,10 +1,13 @@
 package com.sprint.mission.repository;
 
 import com.sprint.mission.domain.User;
+import com.sprint.mission.exception.DiscodeitException;
+import com.sprint.mission.exception.DiscodeitExceptionType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,8 +16,21 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
 
-    // 목록 조회 시 profile / status 를 한 번에 가져와 N+1 방지
     @Override
     @EntityGraph(attributePaths = {"profile", "status"})
     List<User> findAll();
+
+    default User getUser(UUID userId) {
+        if (Objects.isNull(userId)) {
+            throw new DiscodeitException(DiscodeitExceptionType.USER_ID_IS_NULL);
+        }
+
+        return findById(userId)
+                .orElseThrow(() -> new DiscodeitException(DiscodeitExceptionType.USER_NOT_FOUND, userId));
+    }
+
+    default User getUserByUsername(String username) {
+        return findByUsername(username)    // username은 고유하다
+                .orElseThrow(() -> new DiscodeitException(DiscodeitExceptionType.LOGIN_USER_NOT_FOUND, username));
+    }
 }

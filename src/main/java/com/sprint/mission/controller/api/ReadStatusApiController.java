@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.readstatus.ReadStatusApplicationService;
+import com.sprint.mission.service.readstatus.ReadStatusService;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusCreateRequest;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.controller.dto.readstatus.ReadStatusUpdateRequest;
@@ -35,7 +35,7 @@ import java.util.UUID;
 // [X] 특정 사용자의 메시지 수신 정보를 조회할 수 있다.
 public class ReadStatusApiController {
 
-    private final ReadStatusApplicationService readStatusApplicationService;
+    private final ReadStatusService readStatusService;
 
     @Operation(summary = "Message 읽음 상태 생성")
     @ApiResponses({
@@ -72,7 +72,7 @@ public class ReadStatusApiController {
     public ResponseEntity<ReadStatusDto> create(
             @Valid @RequestBody ReadStatusCreateRequest request
     ) {
-        ReadStatusDto createdReadStatus = readStatusApplicationService.create(request);
+        ReadStatusDto createdReadStatus = readStatusService.create(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdReadStatus);
@@ -94,7 +94,7 @@ public class ReadStatusApiController {
             @Parameter(description = "조회할 User ID")
             @NotNull @RequestParam UUID userId
     ) {
-        List<ReadStatusDto> readStatusListByUserId = readStatusApplicationService.findAllByUserId(userId);
+        List<ReadStatusDto> readStatusListByUserId = readStatusService.findAllByUserId(userId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(readStatusListByUserId);
@@ -127,7 +127,7 @@ public class ReadStatusApiController {
             @NotNull @PathVariable UUID readStatusId,
             @Valid @RequestBody ReadStatusUpdateRequest request
     ) {
-        ReadStatusDto updatedReadStatus = readStatusApplicationService.update(readStatusId, request);
+        ReadStatusDto updatedReadStatus = readStatusService.update(readStatusId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedReadStatus);

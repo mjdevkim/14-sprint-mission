@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.user.UserApplicationService;
+import com.sprint.mission.service.user.UserService;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import com.sprint.mission.controller.dto.user.UserUpdateRequest;
@@ -41,7 +41,7 @@ import java.util.UUID;
 @Tag(name = "User", description = "User API")
 public class UserApiController {
 
-    private final UserApplicationService userApplicationService;
+    private final UserService userService;
 
     @Operation(summary = "User 등록")
     @ApiResponses({
@@ -70,7 +70,7 @@ public class UserApiController {
             @Parameter(description = "User 프로필 이미지")
             @RequestPart(value = "profile", required = false) MultipartFile profileImage
     ) {
-        UserDto createdUser = userApplicationService.create(userCreateRequest, profileImage);
+        UserDto createdUser = userService.create(userCreateRequest, profileImage);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(createdUser);
@@ -113,7 +113,7 @@ public class UserApiController {
             @Parameter(description = "수정할 User 프로필 이미지")
             @RequestPart(value = "profile", required = false) MultipartFile profileImage
     ) {
-        UserDto updatedUser = userApplicationService.update(
+        UserDto updatedUser = userService.update(
                 userId,
                 userUpdateRequest,
                 profileImage
@@ -143,7 +143,7 @@ public class UserApiController {
             @Parameter(description = "삭제할 User ID")
             @NotNull @PathVariable UUID userId
     ) {
-        userApplicationService.delete(userId);
+        userService.delete(userId);
         return ResponseEntity
                 .noContent()
                 .build();
@@ -162,7 +162,7 @@ public class UserApiController {
     )
     @GetMapping
     public ResponseEntity<List<UserDto>> findAll() {
-        List<UserDto> usersList = userApplicationService.findAll();
+        List<UserDto> usersList = userService.findAll();
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(usersList);
@@ -196,7 +196,7 @@ public class UserApiController {
             @Valid @RequestBody UserStatusUpdateRequest request
     ) {
         UserStatusDto updatedUserStatus =
-                userApplicationService.updateUserStatusByUserId(userId, request);
+                userService.updateUserStatusByUserId(userId, request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(updatedUserStatus);

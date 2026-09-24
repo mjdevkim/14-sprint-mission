@@ -1,4 +1,4 @@
-package com.sprint.mission.application.user;
+package com.sprint.mission.service.user;
 
 import com.sprint.mission.controller.dto.binarycontent.BinaryContentDto;
 import com.sprint.mission.controller.dto.user.UserCreateRequest;
@@ -9,11 +9,13 @@ import com.sprint.mission.controller.dto.userstatus.UserStatusUpdateRequest;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.User;
 import com.sprint.mission.domain.UserStatus;
+import com.sprint.mission.exception.DiscodeitException;
+import com.sprint.mission.exception.DiscodeitExceptionType;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
-import com.sprint.mission.service.binarycontent.BinaryContentDomainService;
-import com.sprint.mission.service.user.UserDomainService;
-import com.sprint.mission.service.userstatus.UserStatusDomainService;
+import com.sprint.mission.repository.BinaryContentRepository;
+import com.sprint.mission.repository.UserRepository;
+import com.sprint.mission.repository.UserStatusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,10 +32,10 @@ import java.util.UUID;
 @Validated
 @Transactional
 @RequiredArgsConstructor
-public class UserApplicationServiceImpl implements UserApplicationService {
-    private final UserDomainService userDomainService;
-    private final BinaryContentDomainService binaryContentDomainService;
-    private final UserStatusDomainService userStatusDomainService;
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final BinaryContentRepository binaryContentRepository;
+    private final UserStatusRepository userStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
 
     @Override
@@ -58,7 +60,9 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 Objects.isNull(createdProfileImage) ? "No Pfp" : createdProfileImage.getId()
         );
 
-        User createdUser = userDomainService.create(User.create(
+        validateUnique(userCreateRequest.getUsername(), userCreateRequest.getEmail());
+
+        User createdUser = userRepository.save(User.create(
                 userCreateRequest.getUsername(),
                 userCreateRequest.getEmail(),
                 userCreateRequest.getPassword(),
@@ -82,14 +86,14 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 converted.getBytes()
         );
 
-        return binaryContentDomainService.create(binaryContent);
+        return binaryContentRepository.save(binaryContent);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserDto findById(UUID userId) {
         log.debug("User 단일 조회: userId={}", userId);
-        User user = userDomainService.findById(userId);
+        User user = userRepository.getUser(userId);
 
         return toDto(user);
     }
@@ -97,7 +101,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> findAll() {
-        List<UserDto> userResponses = userDomainService.findAll().stream()
+        List<UserDto> userResponses = userRepository.findAll().stream()
                 .map(this::toDto)
                 .toList();
 
@@ -111,7 +115,7 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             UserUpdateRequest userUpdateRequest,
             MultipartFile profileImage
     ) {
-        User updatingUser = userDomainService.findById(userId);
+        User updatingUser = userRepository.getUser(userId);
         BinaryContent oldProfile = updatingUser.getProfile();
 
         log.info(
@@ -131,17 +135,23 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             );
         }
 
+        validateUniqueForUpdate(
+                updatingUser,
+                userUpdateRequest.getNewUsername(),
+                userUpdateRequest.getNewEmail()
+        );
+
+        // user 정보 수정 - 엔티티에서 수행한다
         updatingUser.updateAccountDetails(
                 userUpdateRequest.getNewUsername(),
                 userUpdateRequest.getNewEmail(),
                 userUpdateRequest.getNewPassword(),
                 createdProfileImage
         );
-
-        User updatedUser = userDomainService.update(updatingUser);
+        User updatedUser = updatingUser;
 
         if (Objects.nonNull(createdProfileImage) && Objects.nonNull(oldProfile)) {
-            binaryContentDomainService.delete(oldProfile.getId());
+            binaryContentRepository.deleteById(oldProfile.getId());
             log.debug(
                     "기존 프로필 삭제 완료: userId={}, oldProfileId={}",
                     userId,
@@ -164,11 +174,11 @@ public class UserApplicationServiceImpl implements UserApplicationService {
             UserStatusUpdateRequest request
     ) {
         log.info("User 업데이트 시작: userId={}", userId);
-        userDomainService.findById(userId);
-        UserStatus updatingUserStatus = userStatusDomainService.findByUserId(userId);
+        userRepository.getUser(userId);
+        UserStatus updatingUserStatus = userStatusRepository.getUserStatusByUserId(userId);
 
         updatingUserStatus.updateLastActiveAt(request.getNewLastActiveAt());
-        UserStatus updatedUserStatus = userStatusDomainService.update(updatingUserStatus);
+        UserStatus updatedUserStatus = updatingUserStatus;
 
         log.info(
                 "UserStatus 업데이트 완료: userId={}, lastActiveAt={}",
@@ -181,15 +191,15 @@ public class UserApplicationServiceImpl implements UserApplicationService {
 
     @Override
     public void delete(UUID userId) {
-        User user = userDomainService.findById(userId);
+        User user = userRepository.getUser(userId);
         BinaryContent profile = user.getProfile();
         UUID userStatusId = user.getStatus().getId();
 
         log.info("User 삭제 시작: userId={}", userId);
 
-        userDomainService.delete(userId);   // UserStatus 는 cascade 로 함께 삭제
+        userRepository.deleteById(userId);
         if (Objects.nonNull(profile)) {
-            binaryContentDomainService.delete(profile.getId());
+            binaryContentRepository.deleteById(profile.getId());
         }
 
         log.info(
@@ -198,6 +208,29 @@ public class UserApplicationServiceImpl implements UserApplicationService {
                 userStatusId,
                 Objects.isNull(profile) ? null : profile.getId()
         );
+    }
+
+    private void validateUnique(String username, String email) {
+        if (userRepository.existsByUsername(username)) {
+            throw new DiscodeitException(DiscodeitExceptionType.USER_USERNAME_EXISTS);
+        }
+        if (userRepository.existsByEmail(email)) {
+            throw new DiscodeitException(DiscodeitExceptionType.USER_EMAIL_EXISTS);
+        }
+    }
+
+    private void validateUniqueForUpdate(User currentUser, String newUsername, String newEmail) {
+        boolean usernameChanged = Objects.nonNull(newUsername)
+                && !Objects.equals(currentUser.getUsername(), newUsername);
+        boolean emailChanged = Objects.nonNull(newEmail)
+                && !Objects.equals(currentUser.getEmail(), newEmail);
+
+        if (usernameChanged && userRepository.existsByUsername(newUsername)) {
+            throw new DiscodeitException(DiscodeitExceptionType.USER_USERNAME_EXISTS);
+        }
+        if (emailChanged && userRepository.existsByEmail(newEmail)) {
+            throw new DiscodeitException(DiscodeitExceptionType.USER_EMAIL_EXISTS);
+        }
     }
 
     private UserDto toDto(User user) {

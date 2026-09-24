@@ -1,6 +1,6 @@
 package com.sprint.mission.controller.api;
 
-import com.sprint.mission.application.auth.AuthApplicationService;
+import com.sprint.mission.service.auth.AuthService;
 import com.sprint.mission.controller.dto.auth.LoginRequest;
 import com.sprint.mission.controller.dto.user.UserDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Auth", description = "인증 API")
 public class LoginApiController {
 
-    private final AuthApplicationService authApplicationService;
+    private final AuthService authService;
 
     @Operation(summary = "로그인")
     @ApiResponses({
@@ -60,7 +60,7 @@ public class LoginApiController {
     public ResponseEntity<UserDto> login(
             @Valid @RequestBody LoginRequest loginRequest
     ) {
-        UserDto loggedInUser = authApplicationService.login(loginRequest);
+        UserDto loggedInUser = authService.login(loginRequest);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(loggedInUser);
