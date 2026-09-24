@@ -3,6 +3,7 @@ package com.sprint.mission.service.message;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
+import com.sprint.mission.controller.dto.response.PageResponse;
 import com.sprint.mission.storage.BinaryContentStorage;
 import com.sprint.mission.domain.BinaryContent;
 import com.sprint.mission.domain.Channel;
@@ -12,6 +13,7 @@ import com.sprint.mission.domain.User;
 import com.sprint.mission.exception.DiscodeitException;
 import com.sprint.mission.exception.DiscodeitExceptionType;
 import com.sprint.mission.mapper.MessageMapper;
+import com.sprint.mission.mapper.PageResponseMapper;
 import com.sprint.mission.multipart.MultipartFileConverter;
 import com.sprint.mission.multipart.MultipartFileDto;
 import com.sprint.mission.repository.ChannelRepository;
@@ -20,6 +22,8 @@ import com.sprint.mission.repository.ReadStatusRepository;
 import com.sprint.mission.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -35,12 +39,15 @@ import java.util.UUID;
 @Transactional
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
+    private static final int PAGE_SIZE = 50;
+
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
     private final ReadStatusRepository readStatusRepository;
     private final MultipartFileConverter multipartFileConverter;
     private final MessageMapper messageMapper;
+    private final PageResponseMapper pageResponseMapper;
     private final BinaryContentStorage binaryContentStorage;
 
     // Message.attachments는 cascade(PERSIST)로 저장되기 때문에, 저장 전에는
@@ -138,21 +145,23 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MessageDto> findAllByChannelId(UUID channelId) {
+    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, int page) {
         channelRepository.getChannel(channelId);
 
-        List<MessageDto> messageResponses = messageRepository.findAllByChannelId(channelId)
-                .stream()
-                .map(messageMapper::toDto)
-                .toList();
+        Slice<Message> messages = messageRepository.findAllByChannelIdOrderByCreatedAtDesc(
+                channelId, PageRequest.of(page, PAGE_SIZE)
+        );
+        Slice<MessageDto> messageDtos = messages.map(messageMapper::toDto);
+        PageResponse<MessageDto> pageResponse = pageResponseMapper.fromSlice(messageDtos);
 
         log.debug(
-                "Channel Message 목록 조회 완료: channelId={}, count={}",
+                "Channel Message 목록 조회 완료: channelId={}, page={}, count={}",
                 channelId,
-                messageResponses.size()
+                page,
+                pageResponse.getContent().size()
         );
 
-        return messageResponses;
+        return pageResponse;
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.sprint.mission.service.message;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
+import com.sprint.mission.controller.dto.response.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +17,7 @@ public interface MessageService {
             List<MultipartFile> attachment
     );
     MessageDto findById(@NotNull UUID messageId);
-    List<MessageDto> findAllByChannelId(@NotNull UUID channelId);
+    PageResponse<MessageDto> findAllByChannelId(@NotNull UUID channelId, int page);
     MessageDto update(
             @NotNull UUID messageId,
             @NotNull @Valid MessageUpdateRequest messageUpdateRequest

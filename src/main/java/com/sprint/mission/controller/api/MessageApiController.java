@@ -4,9 +4,9 @@ import com.sprint.mission.service.message.MessageService;
 import com.sprint.mission.controller.dto.message.MessageCreateRequest;
 import com.sprint.mission.controller.dto.message.MessageDto;
 import com.sprint.mission.controller.dto.message.MessageUpdateRequest;
+import com.sprint.mission.controller.dto.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,7 +35,6 @@ import java.util.UUID;
 //[X] 메시지를 수정할 수 있다.
 //[X] 메시지를 삭제할 수 있다.
 //[X] 특정 채널의 메시지 목록을 조회할 수 있다.
-@Validated
 public class MessageApiController {
 
     private final MessageService messageService;
@@ -136,19 +135,19 @@ public class MessageApiController {
             description = "Message 목록 조회 성공",
             content = @Content(
                     mediaType = "*/*",
-                    array = @ArraySchema(
-                            schema = @Schema(implementation = MessageDto.class)
-                    )
+                    schema = @Schema(implementation = PageResponse.class)
             )
     )
     @GetMapping
-    public ResponseEntity<List<MessageDto>> findAllByChannelId(
+    public ResponseEntity<PageResponse<MessageDto>> findAllByChannelId(
             @Parameter(description = "조회할 Channel ID")
-            @NotNull @RequestParam UUID channelId
+            @NotNull @RequestParam UUID channelId,
+            @Parameter(description = "조회할 페이지 번호 (0부터 시작)")
+            @RequestParam(defaultValue = "0") int page
     ) {
-        List<MessageDto> channelMessageList = messageService.findAllByChannelId(channelId);
+        PageResponse<MessageDto> channelMessagePage = messageService.findAllByChannelId(channelId, page);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(channelMessageList);
+                .body(channelMessagePage);
     }
 }
